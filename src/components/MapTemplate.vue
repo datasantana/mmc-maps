@@ -4,6 +4,7 @@
 
 <script>
 import mapboxgl from 'mapbox-gl';
+import path from '../assets/5k.json'; // Adjust the path to your GeoJSON file
 
 export default {
   name: 'map-template',
@@ -13,8 +14,40 @@ export default {
     this.map = new mapboxgl.Map({
       container: this.$refs.mapContainer,
       style: 'mapbox://styles/geostudio/cmbh999uh001901qt6te20agp', // Map style URL.
-      center: [-74.006, 40.7128], // Starting position [lng, lat].
-      zoom: 13 // Starting zoom level.
+      center: [-76.5410942407, 3.4300127118], // Starting position [lng, lat].
+      zoom: 18, // Starting zoom level.
+      pitch: 45, // Set the pitch of the map.
+    });
+
+    this.map.on('load', () => {
+
+      // Add a GeoJSON source with a line string
+      this.map.addSource('line', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: path.features[0].geometry.coordinates // Use the coordinates from your GeoJSON file
+          }
+        },
+        lineMetrics: true // Enable line metrics for accurate rendering
+      });
+
+      // Add a layer to visualize the line
+      this.map.addLayer({
+        id: 'lineLayer',
+        type: 'line',
+        source: 'line',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#888',
+          'line-width': 8
+        }
+      });
     });
   }
 };
