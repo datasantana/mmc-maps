@@ -1,0 +1,12 @@
+{
+"type": "FeatureCollection",
+"name": "gatoradeMarkers",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "FID": 0 }, "geometry": { "type": "Point", "coordinates": [ -76.54119178875743, 3.431341719484916 ] } },
+{ "type": "Feature", "properties": { "FID": 1 }, "geometry": { "type": "Point", "coordinates": [ -76.539342794406267, 3.408584651893285 ] } },
+{ "type": "Feature", "properties": { "FID": 2 }, "geometry": { "type": "Point", "coordinates": [ -76.53876503774859, 3.436315513196064 ] } },
+{ "type": "Feature", "properties": { "FID": 3 }, "geometry": { "type": "Point", "coordinates": [ -76.537721801663338, 3.450631637597815 ] } },
+{ "type": "Feature", "properties": { "FID": 4 }, "geometry": { "type": "Point", "coordinates": [ -76.524684038479762, 3.464574254648221 ] } }
+]
+}
