@@ -156,11 +156,11 @@ export default {
               "icon-image": "water-marker",
               "icon-size": 0.5,
               "icon-allow-overlap": true,
-              "text-field": 'Punto\nHidratación\nPrimersos\nAuxilios',
+              "text-field": 'Punto\nHidratación\nPrimeros\nAuxilios',
               "text-offset": [0, 1.2],
               "text-anchor": "top",
               "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-              "text-size": 10
+              "text-size": 12
             },
             paint: {
               "text-color": "#e4e4e4",
@@ -200,6 +200,7 @@ export default {
               "text-offset": [0, 1.2],
               "text-anchor": "top",
             },
+            
             paint: {
               "text-color": "#e4e4e4",
               "text-halo-color": "rgba(0, 0, 0, 0.7)",
@@ -235,7 +236,7 @@ export default {
               "icon-image": "gatorade-marker",
               "icon-size": 0.015,
               "icon-allow-overlap": true,
-              "text-field": 'Punto\nHidratación\nPrimersos\nAuxilios',
+              "text-field": 'Punto\nHidratación\nPrimeros\nAuxilios',
               "text-offset": [0, 1.2],
               "text-anchor": "top",
               "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
@@ -303,7 +304,7 @@ export default {
       
       // Start the animation
       let startTime;
-      const duration = 350000;
+      const duration = 550000;
       
       const frame = (time) => {
         if (!startTime) startTime = time;
