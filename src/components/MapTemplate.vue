@@ -25,12 +25,37 @@ export default {
       pitch: 45, // Set the pitch of the map.
     });
 
+    // Add navigation control with a compass and zoom controls.
+    this.map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
     this.map.on('load', () => {
       // Define a startBearing for camera movement
       const startBearing = 0;
 
       // Pre-calculate the total distance of the path
       const totalDistance = turf.lineDistance(path.features[0]);
+
+      // Variables to control pause/resume state.
+      let startTime;
+      const duration = 550000;
+      let isPaused = false;
+      let pauseTimestamp = null;
+
+      // Add click handler to pause/resume the animation.
+      this.map.on('click', () => {
+        if (!isPaused) {
+          // Pause animation.
+          isPaused = true;
+          pauseTimestamp = performance.now();
+        } else {
+          // Resume animation, adjusting startTime so animation resumes smoothly.
+          isPaused = false;
+          if (startTime !== undefined) {
+            startTime += performance.now() - pauseTimestamp;
+          }
+          pauseTimestamp = null;
+        }
+      });
 
       // Now add the distance markers using your GeoJSON and marker PNG.
       this.map.loadImage(
@@ -302,12 +327,15 @@ export default {
         }
       });
       
-      // Start the animation
-      let startTime;
-      const duration = 550000;
-      
       const frame = (time) => {
         if (!startTime) startTime = time;
+
+        // If paused, skip updating and request the next frame.
+        if (isPaused) {
+          window.requestAnimationFrame(frame);
+          return;
+        }
+
         // Clamp animationPhase to 1 to avoid overshooting
         let animationPhase = Math.min((time - startTime) / duration, 1);
         
@@ -317,7 +345,7 @@ export default {
         const [lng, lat] = coordinates;
         const bearing = startBearing - animationPhase * 300.0;
         
-        // First, update the camera position
+        // Update the camera position
         const computeCameraPosition = (pitch, bearing, targetPosition, altitude, smooth = false) => {
           const bearingInRadian = bearing / 57.29;
           const pitchInRadian = (90 - pitch) / 57.29;
@@ -332,16 +360,16 @@ export default {
             bearing: bearing
           };
           if (smooth) {
-            this.map.easeTo(newCameraPosition);
-          } else {
             this.map.jumpTo(newCameraPosition);
+          } else {
+            this.map.easeTo(newCameraPosition);
           }
           return newCameraPosition;
         };
         
-        computeCameraPosition(45, bearing, [lng,lat], 50, false);
+        computeCameraPosition(45, bearing, [lng,lat], 50, true);
         
-        // Then update the head circle so it stays synchronized with the camera and path
+        // Update the head circle so it stays synchronized with the camera and path
         const headFeature = {
           type: 'Feature',
           geometry: {
@@ -375,7 +403,8 @@ export default {
 
       window.requestAnimationFrame(frame);
 
-      // repeat
+      // Repeat the animation after a delay
+      // This will reset the startTime to allow the animation to restart smoothly.
       setInterval(() => {
         startTime = undefined;
         window.requestAnimationFrame(frame);
