@@ -5,6 +5,7 @@
 <script>
 import mapboxgl from 'mapbox-gl';
 import path from '../assets/21k.json'; // Adjust the path to your GeoJSON file
+import distanceMarkers from '../assets/distanceMarkers.json'; // Your GeoJSON with markers
 import  turf from 'turf';
 
 export default {
@@ -26,6 +27,67 @@ export default {
 
       // Pre-calculate the total distance of the path
       const totalDistance = turf.lineDistance(path.features[0]);
+
+      // Now add the distance markers using your GeoJSON and marker PNG.
+      this.map.loadImage(
+        require('../assets/icons8-empty-flag-30.png'),
+        (error, image) => {
+          if (!this.map.hasImage('distance-marker')) {
+            this.map.addImage('distance-marker', image);
+          }
+          this.map.addSource('distanceMarkers', {
+            type: 'geojson',
+            data: distanceMarkers,
+          });
+
+          // Add a shadow layer behind markers to simulate drop shadow on both icon and label.
+          this.map.addLayer({
+            id: 'distanceMarkersShadowLayer',
+            type: 'symbol',
+            source: 'distanceMarkers',
+            layout: {
+              "icon-image": "distance-marker",
+              "icon-size": 1,
+              "icon-allow-overlap": true,
+              "icon-translate": [2, 2],
+              "text-field": ["get", "distance"],
+              "text-offset": [0, 1.2],
+              "text-anchor": "top",
+              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+              "text-translate": [2, 2]
+            },
+            paint: {
+              "icon-opacity": 0.5,
+              "text-color": "#e4e4e4",
+              "text-halo-color": "rgba(0, 0, 0, 0.7)",
+              "text-halo-width": 2,
+              "text-halo-blur": 1,
+            }
+          });
+
+          // Add the main markers layer on top.
+          this.map.addLayer({
+            id: 'distanceMarkersLayer',
+            type: 'symbol',
+            source: 'distanceMarkers',
+            layout: {
+              "icon-image": "distance-marker",
+              "icon-size": 1,
+              "icon-allow-overlap": true,
+              "text-field": ["get", "distance"],
+              "text-offset": [0, 1.2],
+              "text-anchor": "top",
+              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"]
+            },
+            paint: {
+              "text-color": "#e4e4e4",
+              "text-halo-color": "rgba(0, 0, 0, 0.7)",
+              "text-halo-width": 2,
+              "text-halo-blur": 1,
+            }
+          });
+        }
+      );
       
       // Add a GeoJSON source with a line string
       this.map.addSource('line', {
@@ -79,7 +141,7 @@ export default {
       
       // Start the animation
       let startTime;
-      const duration = 550000;
+      const duration = 350000;
       
       const frame = (time) => {
         if (!startTime) startTime = time;
@@ -114,7 +176,7 @@ export default {
           return newCameraPosition;
         };
         
-        computeCameraPosition(45, bearing, [lng,lat], 50, true);
+        computeCameraPosition(45, bearing, [lng,lat], 50, false);
         
         // Then update the head circle so it stays synchronized with the camera and path
         const headFeature = {
@@ -154,7 +216,7 @@ export default {
       setInterval(() => {
         startTime = undefined;
         window.requestAnimationFrame(frame);
-      }, duration + 1500);
+      }, duration + 1500); 
     });
   }
 };
