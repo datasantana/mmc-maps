@@ -23,6 +23,9 @@ export default {
     this.map.on('load', () => {
       // Define a startBearing for camera movement
       const startBearing = 0;
+
+      // Pre-calculate the total distance of the path
+      const totalDistance = turf.lineDistance(path.features[0]);
       
       // Add a GeoJSON source with a line string
       this.map.addSource('line', {
@@ -53,36 +56,52 @@ export default {
         },
       });
 
+      // Add a source and layer for the red circle at the head of the path
+      this.map.addSource('head', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [] // Initially empty
+          }
+        }
+      });
+      this.map.addLayer({
+        id: 'headLayer',
+        type: 'circle',
+        source: 'head',
+        paint: {
+          'circle-radius': 15,
+          'circle-color': 'red'
+        }
+      });
       
       // Start the animation
       let startTime;
-      const duration = 120000;
+      const duration = 550000;
       
       const frame = (time) => {
         if (!startTime) startTime = time;
-        const animationPhase = (time - startTime) / duration;
+        // Clamp animationPhase to 1 to avoid overshooting
+        let animationPhase = Math.min((time - startTime) / duration, 1);
         
-        // Calculate the length of the line
-        const pathDistance = turf.lineDistance(path.features[0]);
-        //console.log(`Path distance: ${pathDistance} km`);
-        // Get the current coordinate along the line head
-        const[lng, lat] = turf.along(path.features[0], pathDistance * animationPhase).geometry.coordinates;
-        //console.log(`Current position: ${lng}, ${lat}`)
+        // Calculate current position along the path
+        const currentDistance = totalDistance * animationPhase;
+        const { coordinates } = turf.along(path.features[0], currentDistance).geometry;
+        const [lng, lat] = coordinates;
         const bearing = startBearing - animationPhase * 300.0;
-
-        // Define a helper to compute the camera position
+        
+        // First, update the camera position
         const computeCameraPosition = (pitch, bearing, targetPosition, altitude, smooth = false) => {
           const bearingInRadian = bearing / 57.29;
           const pitchInRadian = (90 - pitch) / 57.29;
-
+          
           const lngDiff = ((altitude * Math.tan(pitchInRadian)) * Math.sin(-bearingInRadian)) / 70000;
           const latDiff = ((altitude * Math.tan(pitchInRadian)) * Math.cos(-bearingInRadian)) / 110000;
-
-          const correctedLng = targetPosition[0] + lngDiff;
-          const correctedLat = targetPosition[1] - latDiff;
-
+          
           const newCameraPosition = {
-            center: [correctedLng, correctedLat],
+            center: [targetPosition[0] + lngDiff, targetPosition[1] - latDiff],
             zoom: 17,
             pitch: pitch,
             bearing: bearing
@@ -94,21 +113,37 @@ export default {
           }
           return newCameraPosition;
         };
-  
-        // Update the line gradient to visually reveal the path
+        
+        computeCameraPosition(45, bearing, [lng,lat], 50, true);
+        
+        // Then update the head circle so it stays synchronized with the camera and path
+        const headFeature = {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [lng, lat]
+          }
+        };
+        this.map.getSource('head').setData(headFeature);
+        
+        // Apply a two-tone gradient to the line layer:
+        // For points along the revealed part of the line (line-progress < animationPhase)
+        // interpolate from green at the start to red at the current head.
+        // The unrevealed portion remains transparent.
         this.map.setPaintProperty("lineLayer", "line-gradient", [
-          "step",
-          ["line-progress"],
-          "red",
-          animationPhase,
+          "case",
+          [ "<", ["line-progress"], animationPhase ],
+          [
+            "interpolate",
+            ["linear"],
+            ["line-progress"],
+            0, "green",
+            animationPhase, "red"
+          ],
           "rgba(0, 0, 0, 0)"
         ]);
-
-        // Update camera position using computed current position;
-        // altitude can be adjusted as needed (e.g., 500)
-        computeCameraPosition(45, bearing, [lng, lat], 50, false);
-
-        if (animationPhase <= 1) {
+        
+        if (animationPhase < 1) {
           window.requestAnimationFrame(frame);
         }
       };
