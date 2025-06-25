@@ -4,12 +4,12 @@
 
 <script>
 import mapboxgl from 'mapbox-gl';
-import path from '../assets/21k.json'; // Adjust the path to your GeoJSON file
-import marks from '../assets/marks_21k.json'; // Single JSON file with all marks
+import path from '../assets/5k.json'; // Adjust the path to your GeoJSON file
+import marks from '../assets/marks_5k.json'; // Single JSON file with all marks
 import turf from 'turf';
 
 export default {
-  name: 'map-template',
+  name: 'path-5k',
   mounted() {
     // Replace with your actual Mapbox access token.
     mapboxgl.accessToken = 'pk.eyJ1IjoiZ2Vvc3R1ZGlvIiwiYSI6ImNrYndtazR3OTA5cmEycHFxcTl4MWs1aHgifQ.nJvUs7kTlQCzb_-Fda2RSg';
@@ -33,7 +33,7 @@ export default {
 
       // Variables to control pause/resume state.
       let startTime;
-      const duration = 550000;
+      const duration = 180000;
       let isPaused = false;
       let pauseTimestamp = null;
 

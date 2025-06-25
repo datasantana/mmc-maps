@@ -9,7 +9,7 @@ import marks from '../assets/marks_21k.json'; // Single JSON file with all marks
 import turf from 'turf';
 
 export default {
-  name: 'map-template',
+  name: 'path-21k',
   mounted() {
     // Replace with your actual Mapbox access token.
     mapboxgl.accessToken = 'pk.eyJ1IjoiZ2Vvc3R1ZGlvIiwiYSI6ImNrYndtazR3OTA5cmEycHFxcTl4MWs1aHgifQ.nJvUs7kTlQCzb_-Fda2RSg';

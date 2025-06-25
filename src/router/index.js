@@ -1,6 +1,10 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import MapTemplateView from '@/views/MapTemplateView.vue'
+import Path21kView from '@/views/Path21kView.vue'
+import Path10kView from '@/views/Path10kView.vue'
+import Path5kView from '@/views/Path5kView.vue'
+
 
 const routes = [
   {
@@ -20,6 +24,21 @@ const routes = [
     path: '/map-template',
     name: 'map-template',
     component: MapTemplateView
+  },
+  {
+    path: '/21k',
+    name: '21k',
+    component: Path21kView
+  },
+  {
+    path: '/10k',
+    name: '10k',
+    component: Path10kView
+  },
+  {
+    path: '/5k',
+    name: '5k',
+    component: Path5kView
   }
 ]
 
