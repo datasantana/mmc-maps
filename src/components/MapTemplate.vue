@@ -5,12 +5,8 @@
 <script>
 import mapboxgl from 'mapbox-gl';
 import path from '../assets/21k.json'; // Adjust the path to your GeoJSON file
-import distanceMarkers from '../assets/distanceMarkers.json'; // Your GeoJSON with markers
-import healthMarkers from '../assets/healthMarkers.json'; // Your GeoJSON with health markers
-import waterMarkers from '../assets/waterMarkers.json'; // Your GeoJSON with water markers
-import gatoradeMarkers from '../assets/gatoradeMarkers.json'; // Your GeoJSON with gatorade markers
-import binsMarkers from '../assets/binsMarkers.json'; // Your GeoJSON with bins markers
-import  turf from 'turf';
+import marks from '../assets/marks_21k.json'; // Single JSON file with all marks
+import turf from 'turf';
 
 export default {
   name: 'map-template',
@@ -57,225 +53,168 @@ export default {
         }
       });
 
-      // Now add the distance markers using your GeoJSON and marker PNG.
-      this.map.loadImage(
-        require('../assets/icons8-empty-flag-30.png'),
-        (error, image) => {
-          if (!this.map.hasImage('distance-marker')) {
-            this.map.addImage('distance-marker', image);
-          }
-          this.map.addSource('distanceMarkers', {
-            type: 'geojson',
-            data: distanceMarkers,
-          });
+      // Add single marks source
+      this.map.addSource('marks', {
+        type: 'geojson',
+        data: marks,
+      });
 
-          // Add a shadow layer behind markers to simulate drop shadow on both icon and label.
-          this.map.addLayer({
-            id: 'distanceMarkersShadowLayer',
-            type: 'symbol',
-            source: 'distanceMarkers',
-            layout: {
-              "icon-image": "distance-marker",
-              "icon-size": 1,
-              "icon-allow-overlap": true,
-              "icon-translate": [2, 2],
-              "text-field": ["get", "distance"],
-              "text-offset": [0, 1.2],
-              "text-anchor": "top",
-              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-              "text-translate": [2, 2]
-            },
-            paint: {
-              "icon-opacity": 0.5,
-              "text-color": "#e4e4e4",
-              "text-halo-color": "rgba(0, 0, 0, 0.7)",
-              "text-halo-width": 2,
-              "text-halo-blur": 1,
+      // Load all marker images
+      const markerImages = [
+        { id: 'distance-marker', path: require('../assets/dist-mark.png') },
+        { id: 'hydration-marker', path: require('../assets/punto-hidratacion-2.png') },
+        { id: 'gatorade-marker', path: require('../assets/punto-hidratacion-1.png') },
+        { id: 'start-marker', path: require('../assets/start-mark.png') },
+        { id: 'finish-marker', path: require('../assets/finish-mark.png') }
+      ];
+
+      let imagesLoaded = 0;
+      const totalImages = markerImages.length;
+
+      const addMarkersLayers = () => {
+        // Distance markers (KM%)
+        this.map.addLayer({
+          id: 'distanceMarkersLayer',
+          type: 'symbol',
+          source: 'marks',
+          filter: ['all', ['>=', ['index-of', 'KM', ['get', 'name']], 0]],
+          layout: {
+            "icon-image": "distance-marker",
+            "icon-size": 0.2,
+            "icon-allow-overlap": true,
+            "text-field": ["get", "name"],
+            "text-offset": [0, 1.2],
+            "text-anchor": "top",
+            "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"]
+          },
+          paint: {
+            "text-color": "#e4e4e4",
+            "text-halo-color": "rgba(0, 0, 0, 0.7)",
+            "text-halo-width": 2,
+            "text-halo-blur": 1,
+          }
+        });
+
+        // Hydration markers
+        this.map.addLayer({
+          id: 'hydrationMarkersLayer',
+          type: 'symbol',
+          source: 'marks',
+          filter: ['==', ['get', 'name'], 'Hidratacion'],
+          layout: {
+            "icon-image": "hydration-marker",
+            "icon-size": 0.2,
+            "icon-allow-overlap": true,
+            "icon-anchor": "bottom",
+            //"text-field": 'Punto\nHidratación',
+            "text-offset": [0, -0.5],
+            "text-anchor": "bottom",
+            "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+            "text-size": 12
+          },
+          paint: {
+            "text-color": "#e4e4e4",
+            "text-halo-color": "rgba(0, 0, 0, 0.7)",
+            "text-halo-width": 2,
+            "text-halo-blur": 1,
+          }
+        });
+
+        // Gatorade markers
+        this.map.addLayer({
+          id: 'gatoradeMarkersLayer',
+          type: 'symbol',
+          source: 'marks',
+          filter: ['==', ['get', 'name'], 'Gatorade'],
+          layout: {
+            "icon-image": "gatorade-marker",
+            "icon-size": 0.2,
+            "icon-allow-overlap": true,
+            "icon-anchor": "bottom",
+            //"text-field": 'Hidratación\nGatorade',
+            "text-offset": [0, -0.5],
+            "text-anchor": "bottom",
+            "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+            "text-size": 10
+          },
+          paint: {
+            "text-color": "#e4e4e4",
+            "text-halo-color": "rgba(0, 0, 0, 0.7)",
+            "text-halo-width": 2,
+            "text-halo-blur": 1,
+          }
+        });
+
+        // Start marker
+        this.map.addLayer({
+          id: 'startMarkerLayer',
+          type: 'symbol',
+          source: 'marks',
+          filter: ['==', ['get', 'name'], 'Salida'],
+          layout: {
+            "icon-image": "start-marker",
+            "icon-size": 0.2,
+            "icon-allow-overlap": true,
+            "text-field": 'SALIDA',
+            "text-offset": [0, 1.2],
+            "text-anchor": "top",
+            "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+            "text-size": 14
+          },
+          paint: {
+            "text-color": "#00ff00",
+            "text-halo-color": "rgba(0, 0, 0, 0.7)",
+            "text-halo-width": 2,
+            "text-halo-blur": 1,
+          }
+        });
+
+        // Finish marker
+        this.map.addLayer({
+          id: 'finishMarkerLayer',
+          type: 'symbol',
+          source: 'marks',
+          filter: ['==', ['get', 'name'], 'Llegada'],
+          layout: {
+            "icon-image": "finish-marker",
+            "icon-size": 0.2,
+            "icon-allow-overlap": true,
+            "text-field": 'META',
+            "text-offset": [0, 1.2],
+            "text-anchor": "top",
+            "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+            "text-size": 14
+          },
+          paint: {
+            "text-color": "#ff0000",
+            "text-halo-color": "rgba(0, 0, 0, 0.7)",
+            "text-halo-width": 2,
+            "text-halo-blur": 1,
+          }
+        });
+      };
+
+      // Load all images and add layers when complete
+      markerImages.forEach(marker => {
+        this.map.loadImage(
+          marker.path,
+          (error, image) => {
+            if (error) {
+              console.error(`Error loading ${marker.id} image:`, error);
+              return;
             }
-          });
-
-          // Add the main markers layer on top.
-          this.map.addLayer({
-            id: 'distanceMarkersLayer',
-            type: 'symbol',
-            source: 'distanceMarkers',
-            layout: {
-              "icon-image": "distance-marker",
-              "icon-size": 1,
-              "icon-allow-overlap": true,
-              "text-field": ["get", "distance"],
-              "text-offset": [0, 1.2],
-              "text-anchor": "top",
-              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"]
-            },
-            paint: {
-              "text-color": "#e4e4e4",
-              "text-halo-color": "rgba(0, 0, 0, 0.7)",
-              "text-halo-width": 2,
-              "text-halo-blur": 1,
+            if (!this.map.hasImage(marker.id)) {
+              this.map.addImage(marker.id, image);
             }
-          });
-        }
-      );
-
-      // Add health markers
-      this.map.loadImage(
-        require('../assets/icons8-plus-30.png'),
-        (error, image) => {
-          if (error) {
-            console.error('Error loading health markers image:', error);
-            return;
-          }
-          if (!this.map.hasImage('health-marker')) {
-            this.map.addImage('health-marker', image);
-          }
-          this.map.addSource('healthMarkers', {
-            type: 'geojson',
-            data: healthMarkers,
-          });
-
-          // Add the main health markers layer
-          this.map.addLayer({
-            id: 'healthMarkersLayer',
-            type: 'symbol',
-            source: 'healthMarkers',
-            layout: {
-              "icon-image": "health-marker",
-              "icon-size": 0.7,
-              "icon-allow-overlap": true,
-              "text-offset": [0, 1.2],
-              "text-anchor": "top",
-            },
-            paint: {
-              "text-color": "#e4e4e4",
-              "text-halo-color": "rgba(0, 0, 0, 0.7)",
-              "text-halo-width": 2,
-              "text-halo-blur": 1,
-            }
-          });
-        }
-      );
-
-      // Add water markers
-      this.map.loadImage(
-        require('../assets/icons8-water-50.png'),
-        (error, image) => {
-          if (error) {
-            console.error('Error loading health markers image:', error);
-            return;
-          }
-          if (!this.map.hasImage('water-marker')) {
-            this.map.addImage('water-marker', image);
-          }
-          this.map.addSource('waterMarkers', {
-            type: 'geojson',
-            data: waterMarkers,
-          });
-
-          // Add the main water markers layer
-          this.map.addLayer({
-            id: 'waterMarkersLayer',
-            type: 'symbol',
-            source: 'waterMarkers',
-            layout: {
-              "icon-image": "water-marker",
-              "icon-size": 0.5,
-              "icon-allow-overlap": true,
-              "text-field": 'Punto\nHidratación\nPrimeros\nAuxilios',
-              "text-offset": [0, 1.2],
-              "text-anchor": "top",
-              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-              "text-size": 12
-            },
-            paint: {
-              "text-color": "#e4e4e4",
-              "text-halo-color": "rgba(0, 0, 0, 0.7)",
-              "text-halo-width": 2,
-              "text-halo-blur": 1,
-            }
-          });
-        }
-      );
-
-      // Add bins markers
-      this.map.loadImage(
-        require('../assets/icons8-recycle-bin-50.png'),
-        (error, image) => {
-          if (error) {
-            console.error('Error loading health markers image:', error);
-            return;
-          }
-          if (!this.map.hasImage('bins-marker')) {
-            this.map.addImage('bins-marker', image);
-          }
-          this.map.addSource('binsMarkers', {
-            type: 'geojson',
-            data: binsMarkers,
-          });
-
-          // Add the main bin markers layer
-          this.map.addLayer({
-            id: 'binsMarkersLayer',
-            type: 'symbol',
-            source: 'binsMarkers',
-            layout: {
-              "icon-image": "bins-marker",
-              "icon-size": 0.5,
-              "icon-allow-overlap": true,
-              "text-offset": [0, 1.2],
-              "text-anchor": "top",
-            },
+            imagesLoaded++;
             
-            paint: {
-              "text-color": "#e4e4e4",
-              "text-halo-color": "rgba(0, 0, 0, 0.7)",
-              "text-halo-width": 2,
-              "text-halo-blur": 1,
+            // Add all layers once all images are loaded
+            if (imagesLoaded === totalImages) {
+              addMarkersLayers();
             }
-          });
-        }
-      );
-
-      // Add gatorade markers
-      this.map.loadImage(
-        require('../assets/gatorade-logo.png'),
-        (error, image) => {
-          if (error) {
-            console.error('Error loading health markers image:', error);
-            return;
           }
-          if (!this.map.hasImage('gatorade-marker')) {
-            this.map.addImage('gatorade-marker', image);
-          }
-          this.map.addSource('gatoradeMarkers', {
-            type: 'geojson',
-            data: gatoradeMarkers,
-          });
-
-          // Add the main gatorade markers layer
-          this.map.addLayer({
-            id: 'gatoradeMarkersLayer',
-            type: 'symbol',
-            source: 'gatoradeMarkers',
-            layout: {
-              "icon-image": "gatorade-marker",
-              "icon-size": 0.015,
-              "icon-allow-overlap": true,
-              "text-field": 'Punto\nHidratación\nPrimeros\nAuxilios',
-              "text-offset": [0, 1.2],
-              "text-anchor": "top",
-              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-              "text-size": 10
-            },
-            paint: {
-              "text-color": "#e4e4e4",
-              "text-halo-color": "rgba(0, 0, 0, 0.7)",
-              "text-halo-width": 2,
-              "text-halo-blur": 1,
-            }
-          });
-        }
-      );
+        );
+      });
       
       // Add a GeoJSON source with a line string
       this.map.addSource('line', {
