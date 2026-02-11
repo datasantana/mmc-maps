@@ -11,14 +11,14 @@ import turf from 'turf';
 export default {
   name: 'path-21k',
   mounted() {
-    // Replace with your actual Mapbox access token.
-    mapboxgl.accessToken = 'pk.eyJ1IjoiZ2Vvc3R1ZGlvIiwiYSI6ImNrYndtazR3OTA5cmEycHFxcTl4MWs1aHgifQ.nJvUs7kTlQCzb_-Fda2RSg';
+    // Mapbox configuration from environment variables
+    mapboxgl.accessToken = process.env.VUE_APP_MAPBOX_ACCESS_TOKEN || '';
     this.map = new mapboxgl.Map({
       container: this.$refs.mapContainer,
-      style: 'mapbox://styles/geostudio/cmbh999uh001901qt6te20agp', // Map style URL.
-      center: [-76.5410942407, 3.4300127118], // Starting position [lng, lat].
-      zoom: 17, // Starting zoom level.
-      pitch: 45, // Set the pitch of the map.
+      style: process.env.VUE_APP_MAPBOX_STYLE || 'mapbox://styles/mapbox/streets-v11',
+      center: [parseFloat(process.env.VUE_APP_MAPBOX_CENTER_LNG) || -76.5410942407, parseFloat(process.env.VUE_APP_MAPBOX_CENTER_LAT) || 3.4300127118],
+      zoom: parseInt(process.env.VUE_APP_MAPBOX_ZOOM) || 17,
+      pitch: parseInt(process.env.VUE_APP_MAPBOX_PITCH) || 45,
     });
 
     // Add navigation control with a compass and zoom controls.
@@ -322,15 +322,17 @@ export default {
         // For points along the revealed part of the line (line-progress < animationPhase)
         // interpolate from green at the start to red at the current head.
         // The unrevealed portion remains transparent.
+        // Use Math.max to ensure animationPhase > 0 for strictly ascending interpolation values
+        const safePhase = Math.max(animationPhase, 0.0001);
         this.map.setPaintProperty("lineLayer", "line-gradient", [
           "case",
-          [ "<", ["line-progress"], animationPhase ],
+          [ "<", ["line-progress"], safePhase ],
           [
             "interpolate",
             ["linear"],
             ["line-progress"],
             0, "green",
-            animationPhase, "red"
+            safePhase, "red"
           ],
           "rgba(0, 0, 0, 0)"
         ]);
