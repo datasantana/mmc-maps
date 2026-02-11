@@ -335,20 +335,31 @@ export default {
 }
 
 .routes-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 2rem;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.route-card {
+  flex: 1 1 calc(33.333% - 1.5rem);
+  min-width: 280px;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (max-width: 1024px) {
-  .routes-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .route-card {
+    flex: 1 1 calc(50% - 1rem);
   }
 }
 
 @media (max-width: 768px) {
-  .routes-grid {
-    grid-template-columns: 1fr;
+  .route-card {
+    flex: 1 1 100%;
+    max-width: 100%;
   }
   
   .nav {
@@ -366,6 +377,8 @@ export default {
   border-radius: 12px;
   overflow: hidden;
   transition: transform 0.2s ease, background-color 0.3s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .route-card:hover {
@@ -381,6 +394,7 @@ export default {
   width: 100%;
   height: 180px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .card-image img {
@@ -397,6 +411,9 @@ export default {
 
 .card-content {
   padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
 }
 
 .card-header {
@@ -459,7 +476,8 @@ export default {
   color: #a1a1a1;
   font-size: 0.9rem;
   line-height: 1.6;
-  margin: 0 0 1.5rem;
+  margin: 0;
+  flex-grow: 1;
 }
 
 .light-theme .card-description {
@@ -481,6 +499,8 @@ export default {
   cursor: pointer;
   transition: all 0.2s ease;
   text-decoration: none;
+  margin-top: 1.5rem;
+  box-sizing: border-box;
 }
 
 .card-btn:hover {
