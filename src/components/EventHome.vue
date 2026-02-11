@@ -8,7 +8,7 @@
             <path d="M12 2L4 7V17L12 22L20 17V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
             <path d="M12 8L8 10.5V15.5L12 18L16 15.5V10.5L12 8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
           </svg>
-          <span class="logo-text">Madrid Race 2024</span>
+          <span class="logo-text">{{ eventName }}</span>
         </div>
         
         <nav class="nav">
@@ -35,86 +35,37 @@
 
     <!-- Hero Section -->
     <section class="hero">
-      <h1 class="hero-title">Madrid</h1>
+      <h1 class="hero-title">{{ city }}</h1>
       <div class="hero-date">
         <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
           <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        <span>24 de Noviembre, 2024</span>
+        <span>{{ formattedDate }}</span>
       </div>
     </section>
 
     <!-- Routes Section -->
     <section id="routes" class="routes-section">
       <div class="routes-grid">
-        <!-- 5K Card -->
-        <div class="route-card">
+        <div class="route-card" v-for="route in routes" :key="route.id">
           <div class="card-image">
-            <img src="https://api.mapbox.com/styles/v1/mapbox/light-v11/static/-3.7038,40.4168,11,0/400x200?access_token=pk.eyJ1IjoiZ2Vvc3R1ZGlvIiwiYSI6ImNrYndtazR3OTA5cmEycHFxcTl4MWs1aHgifQ.nJvUs7kTlQCzb_-Fda2RSg" alt="5K Route Map" />
+            <img :src="getStaticMapUrl(route.id)" :alt="route.name + ' Route Map'" />
           </div>
           <div class="card-content">
             <div class="card-header">
-              <h2 class="card-title">5K</h2>
-              <span class="badge badge-easy">Easy</span>
+              <h2 class="card-title">{{ route.name }}</h2>
+              <span :class="['badge', 'badge-' + route.properties.difficulty]">{{ capitalizeFirst(route.properties.difficulty) }}</span>
             </div>
-            <p class="card-subtitle">SHORT DISTANCE</p>
+            <p class="card-subtitle">{{ route.properties.type.toUpperCase() }}</p>
             <p class="card-description">
-              Flat terrain through the historic Retiro Park. Perfect for beginners or those looking for a fast, scenic run under the autumn sun.
+              {{ route.properties.description }}
             </p>
-            <router-link to="/5k" class="card-btn">
+            <router-link :to="route.properties.path" class="card-btn">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 21h18M5 21V7l8-4 8 4v14M9 21v-6h6v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              Ver detalles de la ruta
-            </router-link>
-          </div>
-        </div>
-
-        <!-- 10K Card -->
-        <div class="route-card">
-          <div class="card-image">
-            <img src="https://api.mapbox.com/styles/v1/mapbox/light-v11/static/-3.7538,40.4368,10.5,0/400x200?access_token=pk.eyJ1IjoiZ2Vvc3R1ZGlvIiwiYSI6ImNrYndtazR3OTA5cmEycHFxcTl4MWs1aHgifQ.nJvUs7kTlQCzb_-Fda2RSg" alt="10K Route Map" />
-          </div>
-          <div class="card-content">
-            <div class="card-header">
-              <h2 class="card-title">10K</h2>
-              <span class="badge badge-moderate">Moderate</span>
-            </div>
-            <p class="card-subtitle">MEDIUM DISTANCE</p>
-            <p class="card-description">
-              Hilly terrain across Casa de Campo. Challenge yourself with elevation changes and breathtaking views of the Royal Palace skyline.
-            </p>
-            <router-link to="/10k" class="card-btn">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              Ver detalles de la ruta
-            </router-link>
-          </div>
-        </div>
-
-        <!-- 21K Card -->
-        <div class="route-card">
-          <div class="card-image">
-            <img src="https://api.mapbox.com/styles/v1/mapbox/light-v11/static/-3.6838,40.4068,10,0/400x200?access_token=pk.eyJ1IjoiZ2Vvc3R1ZGlvIiwiYSI6ImNrYndtazR3OTA5cmEycHFxcTl4MWs1aHgifQ.nJvUs7kTlQCzb_-Fda2RSg" alt="21K Route Map" />
-          </div>
-          <div class="card-content">
-            <div class="card-header">
-              <h2 class="card-title">21K</h2>
-              <span class="badge badge-challenging">Challenging</span>
-            </div>
-            <p class="card-subtitle">HALF MARATHON</p>
-            <p class="card-description">
-              Varied terrain through the heart of the city. A demanding course passing by major landmarks from Castellana to Madrid Río.
-            </p>
-            <router-link to="/21k" class="card-btn">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M4 22v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              Ver detalles de la ruta
+              View route details
             </router-link>
           </div>
         </div>
@@ -129,25 +80,52 @@
             <path d="M12 2L4 7V17L12 22L20 17V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
             <path d="M12 8L8 10.5V15.5L12 18L16 15.5V10.5L12 8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
           </svg>
-          <span>Madrid Race 2024</span>
+          <span>{{ eventName }}</span>
         </div>
         <div class="footer-links">
           <a href="#privacy">Privacy Policy</a>
           <a href="#terms">Terms of Service</a>
           <a href="#contact">Contact</a>
         </div>
-        <p class="footer-copyright">© 2024 Madrid Race. All rights reserved.</p>
+        <p class="footer-copyright">© {{ eventYear }} {{ eventName }}. All rights reserved.</p>
       </div>
     </footer>
   </div>
 </template>
 
 <script>
+import routesData from '../assets/routes.json';
+
 export default {
   name: 'EventHome',
   data() {
     return {
-      isLightTheme: false
+      isLightTheme: false,
+      city: process.env.VUE_APP_CITY || 'City',
+      eventName: process.env.VUE_APP_EVENT || 'Event',
+      eventDate: process.env.VUE_APP_DATE || '2026-01-01',
+      routes: routesData.routes,
+      mapboxToken: process.env.VUE_APP_MAPBOX_ACCESS_TOKEN || '',
+      mapboxStyle: 'mapbox://styles/geostudio/cmko3in5d000g01s10x794mhh',
+      mapCenterLng: process.env.VUE_APP_MAPBOX_CENTER_LNG || '-76.5410942407',
+      mapCenterLat: process.env.VUE_APP_MAPBOX_CENTER_LAT || '3.4300127118'
+    }
+  },
+  computed: {
+    formattedDate() {
+      const date = new Date(this.eventDate + 'T00:00:00');
+      return date.toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    },
+    eventYear() {
+      return this.eventDate.split('-')[0];
+    },
+    mapboxStylePath() {
+      // Convert mapbox://styles/username/styleId to username/styleId
+      return this.mapboxStyle.replace('mapbox://styles/', '');
     }
   },
   mounted() {
@@ -164,6 +142,15 @@ export default {
     toggleTheme() {
       this.isLightTheme = !this.isLightTheme;
       localStorage.setItem('theme', this.isLightTheme ? 'light' : 'dark');
+    },
+    capitalizeFirst(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    },
+    getStaticMapUrl(routeId) {
+      // Adjust zoom based on route distance
+      const zoomLevels = { '5k': 13, '10k': 12, '21k': 11 };
+      const zoom = zoomLevels[routeId] || 12;
+      return `https://api.mapbox.com/styles/v1/${this.mapboxStylePath}/static/${this.mapCenterLng},${this.mapCenterLat},${zoom},0/400x200?access_token=${this.mapboxToken}`;
     }
   }
 }

@@ -1,0 +1,40 @@
+{
+  "routes": [
+    {
+      "id": "5k",
+      "name": "5K",
+      "properties": {
+        "distance": 5,
+        "distanceUnit": "km",
+        "difficulty": "easy",
+        "type": "Short Distance",
+        "description": "Flat terrain through the historic Retiro Park. Perfect for beginners or those looking for a fast, scenic run under the autumn sun.",
+        "path": "/5k"
+      }
+    },
+    {
+      "id": "10k",
+      "name": "10K",
+      "properties": {
+        "distance": 10,
+        "distanceUnit": "km",
+        "difficulty": "moderate",
+        "type": "Medium Distance",
+        "description": "Hilly terrain across Casa de Campo. Challenge yourself with elevation changes and breathtaking views of the Royal Palace skyline.",
+        "path": "/10k"
+      }
+    },
+    {
+      "id": "21k",
+      "name": "21K",
+      "properties": {
+        "distance": 21,
+        "distanceUnit": "km",
+        "difficulty": "challenging",
+        "type": "Half Marathon",
+        "description": "Varied terrain through the heart of the city. A demanding course passing by major landmarks from Castellana to Madrid Río.",
+        "path": "/21k"
+      }
+    }
+  ]
+}
