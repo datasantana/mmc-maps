@@ -12,10 +12,10 @@
         </div>
         
         <nav class="nav">
-          <a href="#routes" class="nav-link">Routes</a>
-          <a href="#schedule" class="nav-link">Schedule</a>
-          <a href="#faq" class="nav-link">FAQ</a>
-          <a href="#contact" class="nav-link">Contact</a>
+          <a @click.prevent="scrollTo('routes')" class="nav-link">Routes</a>
+          <a @click.prevent="scrollTo('schedule')" class="nav-link">Schedule</a>
+          <a @click.prevent="scrollTo('faq')" class="nav-link">FAQ</a>
+          <a @click.prevent="scrollTo('contact')" class="nav-link">Contact</a>
         </nav>
         
         <div class="header-actions">
@@ -83,9 +83,9 @@
           <span>{{ eventName }}</span>
         </div>
         <div class="footer-links">
-          <a href="#privacy">Privacy Policy</a>
-          <a href="#terms">Terms of Service</a>
-          <a href="#contact">Contact</a>
+          <a @click.prevent="scrollTo('privacy')">Privacy Policy</a>
+          <a @click.prevent="scrollTo('terms')">Terms of Service</a>
+          <a @click.prevent="scrollTo('contact')">Contact</a>
         </div>
         <p class="footer-copyright">© {{ eventYear }} {{ eventName }}. All rights reserved.</p>
       </div>
@@ -151,6 +151,12 @@ export default {
       const zoomLevels = { '5k': 13, '10k': 12, '21k': 11 };
       const zoom = zoomLevels[routeId] || 12;
       return `https://api.mapbox.com/styles/v1/${this.mapboxStylePath}/static/${this.mapCenterLng},${this.mapCenterLat},${zoom},0/400x200?access_token=${this.mapboxToken}`;
+    },
+    scrollTo(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   }
 }
