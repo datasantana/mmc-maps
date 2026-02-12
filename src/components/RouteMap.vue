@@ -1,7 +1,14 @@
 <template>
   <div class="map-wrapper">
     <div ref="mapContainer" class="map"></div>
-    <PlayBack />
+    <PlayBack
+      :playing="isPlaying"
+      :progress="animationProgress"
+      :distance="currentDistance"
+      :elapsedTime="elapsedTime"
+      @toggle-play="handleTogglePlay"
+      @speed-change="handleSpeedChange"
+    />
   </div>
 </template>
 
@@ -28,6 +35,14 @@ export default {
       type: Number,
       default: 300000,
     },
+  },
+  data() {
+    return {
+      isPlaying: true,
+      animationProgress: 0,
+      currentDistance: 0,
+      elapsedTime: 0,
+    };
   },
   mounted() {
     this.initMap();
@@ -81,19 +96,46 @@ export default {
       let startTime;
       let isPaused = false;
       let pauseTimestamp = null;
+      let speed = 1;
 
-      // Add click handler to pause/resume the animation.
-      this.map.on('click', () => {
-        if (!isPaused) {
-          isPaused = true;
-          pauseTimestamp = performance.now();
+      // Expose speed control so PlayBack can drive it
+      this._setSpeed = (newSpeed) => {
+        const now = performance.now();
+        const effectiveNow = isPaused ? pauseTimestamp : now;
+        if (startTime !== undefined) {
+          // Calculate current phase at old speed, then recompute startTime for new speed
+          const elapsed = effectiveNow - startTime;
+          const currentPhase = Math.min(elapsed / (duration / speed), 1);
+          speed = newSpeed;
+          // Set startTime so that (effectiveNow - startTime) / (duration / speed) === currentPhase
+          startTime = effectiveNow - currentPhase * (duration / speed);
         } else {
+          speed = newSpeed;
+        }
+      };
+
+      // Expose pause/resume control so PlayBack can drive it
+      this._togglePause = (playing) => {
+        if (playing && isPaused) {
+          // Resume
           isPaused = false;
-          if (startTime !== undefined) {
+          this.isPlaying = true;
+          if (startTime !== undefined && pauseTimestamp !== null) {
             startTime += performance.now() - pauseTimestamp;
           }
           pauseTimestamp = null;
+          this._animationFrame = window.requestAnimationFrame(frame);
+        } else if (!playing && !isPaused) {
+          // Pause
+          isPaused = true;
+          this.isPlaying = false;
+          pauseTimestamp = performance.now();
         }
+      };
+
+      // Add click handler to pause/resume the animation.
+      this.map.on('click', () => {
+        this._togglePause(!this.isPlaying);
       });
 
       // Add single marks source
@@ -313,10 +355,13 @@ export default {
         }
 
         // Clamp animationPhase to 1 to avoid overshooting
-        let animationPhase = Math.min((time - startTime) / duration, 1);
+        let animationPhase = Math.min((time - startTime) / (duration / speed), 1);
 
-        // Calculate current position along the path
+        // Update reactive state for PlayBack
+        this.animationProgress = animationPhase;
         const currentDistance = totalDistance * animationPhase;
+        this.currentDistance = currentDistance;
+        this.elapsedTime = time - startTime;
         const { coordinates } = turf.along(pathData.features[0], currentDistance).geometry;
         const [lng, lat] = coordinates;
         const bearing = startBearing - animationPhase * 300.0;
@@ -384,8 +429,23 @@ export default {
       // Repeat the animation after a delay
       this._repeatInterval = setInterval(() => {
         startTime = undefined;
+        this.animationProgress = 0;
+        this.currentDistance = 0;
+        this.elapsedTime = 0;
         this._animationFrame = window.requestAnimationFrame(frame);
       }, duration + 1500);
+    },
+
+    handleTogglePlay(playing) {
+      if (this._togglePause) {
+        this._togglePause(playing);
+      }
+    },
+
+    handleSpeedChange(newSpeed) {
+      if (this._setSpeed) {
+        this._setSpeed(newSpeed);
+      }
     },
   },
 };

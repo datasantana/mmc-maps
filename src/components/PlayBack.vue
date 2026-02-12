@@ -24,7 +24,7 @@
       <div class="stats-group">
         <div class="stat">
           <span class="stat-label">DISTANCE</span>
-          <span class="stat-value">0.0 <small>km</small></span>
+          <span class="stat-value">{{ formattedDistance }} <small>km</small></span>
         </div>
         <div class="stat">
           <span class="stat-label">ELEVATION</span>
@@ -75,7 +75,7 @@
         </div>
         <div class="stat">
           <span class="stat-label">TIME</span>
-          <span class="stat-value">00:00:00</span>
+          <span class="stat-value">{{ formattedTime }}</span>
         </div>
       </div>
     </div>
@@ -85,16 +85,52 @@
 <script>
 export default {
   name: 'PlayBack',
+  props: {
+    playing: {
+      type: Boolean,
+      default: true,
+    },
+    progress: {
+      type: Number,
+      default: 0,
+    },
+    distance: {
+      type: Number,
+      default: 0,
+    },
+    elapsedTime: {
+      type: Number,
+      default: 0,
+    },
+  },
   data() {
     return {
-      isPlaying: true,
       isLightTheme: false,
       speedOptions: [1, 1.5, 2, 3, 5],
       speedIndex: 0,
-      progressPercent: 35, // placeholder for UI preview
     };
   },
   computed: {
+    isPlaying() {
+      return this.playing;
+    },
+    progressPercent() {
+      return Math.min(this.progress * 100, 100);
+    },
+    formattedDistance() {
+      return this.distance.toFixed(1);
+    },
+    formattedTime() {
+      const totalSeconds = Math.floor(this.elapsedTime / 1000);
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = totalSeconds % 60;
+      return [
+        String(h).padStart(2, '0'),
+        String(m).padStart(2, '0'),
+        String(s).padStart(2, '0'),
+      ].join(':');
+    },
     currentSpeed() {
       const speed = this.speedOptions[this.speedIndex];
       return Number.isInteger(speed) ? speed : speed.toFixed(1);
@@ -134,8 +170,7 @@ export default {
   },
   methods: {
     togglePlay() {
-      this.isPlaying = !this.isPlaying;
-      this.$emit('toggle-play', this.isPlaying);
+      this.$emit('toggle-play', !this.isPlaying);
     },
     cycleSpeed() {
       this.speedIndex = (this.speedIndex + 1) % this.speedOptions.length;
