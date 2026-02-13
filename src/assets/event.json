@@ -1,0 +1,26 @@
+{
+  "routes": [
+    {
+      "id": "15k",
+      "name": "15K",
+      "distance": 15,
+      "distanceUnit": "km",
+      "difficulty": "moderate",
+      "type": "Medium Distance",
+      "description": "Hilly terrain across Casa de Campo. Challenge yourself with elevation changes and breathtaking views of the Royal Palace skyline.",
+      "duration": 300000,
+      "zoom": 12
+    },
+    {
+      "id": "42k",
+      "name": "42K",
+      "distance": 42,
+      "distanceUnit": "km",
+      "difficulty": "challenging",
+      "type": "Marathon",
+      "description": "Varied terrain through the heart of the city. A demanding course passing by major landmarks from Castellana to Madrid Río.",
+      "duration": 600000,
+      "zoom": 11
+    }
+  ]
+}
