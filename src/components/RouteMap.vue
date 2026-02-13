@@ -1,49 +1,54 @@
 <template>
+  <!-- PlayBack removed from here — now a sibling in the parent view for proper progress sync -->
   <div class="map-wrapper">
     <div ref="mapContainer" class="map"></div>
-    <PlayBack
-      :playing="isPlaying"
-      :progress="animationProgress"
-      :distance="currentDistance"
-      :elapsedTime="elapsedTime"
-      @toggle-play="handleTogglePlay"
-      @speed-change="handleSpeedChange"
-    />
   </div>
 </template>
 
 <script>
 import mapboxgl from 'mapbox-gl';
 import turf from 'turf';
-import PlayBack from './PlayBack.vue';
 
 export default {
   name: 'RouteMap',
-  components: {
-    PlayBack,
-  },
   props: {
+    // GeoJSON FeatureCollection — features[0] must be a LineString
     pathData: {
       type: Object,
       required: true,
     },
+    // GeoJSON FeatureCollection of Point features (marks) — kept for future use
     marksData: {
       type: Object,
-      required: true,
+      default: () => ({ type: 'FeatureCollection', features: [] }),
     },
+    // Animation duration in milliseconds
     duration: {
       type: Number,
       default: 300000,
     },
+    // Current progress (0–1) synced with parent for PlayBack coordination
+    progress: {
+      type: Number,
+      default: 0,
+    },
+    // Whether the animation is currently playing (driven by parent)
+    playing: {
+      type: Boolean,
+      default: true,
+    },
+    // Speed multiplier for animation (driven by parent)
+    speed: {
+      type: Number,
+      default: 1,
+    },
+    // Toggle to activate marks rendering — disabled for now
+    showMarks: {
+      type: Boolean,
+      default: false,
+    },
   },
-  data() {
-    return {
-      isPlaying: true,
-      animationProgress: 0,
-      currentDistance: 0,
-      elapsedTime: 0,
-    };
-  },
+  emits: ['update:progress'],
   mounted() {
     this.initMap();
   },
@@ -51,12 +56,32 @@ export default {
     if (this._animationFrame) {
       cancelAnimationFrame(this._animationFrame);
     }
-    if (this._repeatInterval) {
-      clearInterval(this._repeatInterval);
+    if (this._restartTimeout) {
+      clearTimeout(this._restartTimeout);
     }
     if (this.map) {
       this.map.remove();
     }
+  },
+  watch: {
+    // External seek — when PlayBack scrub changes progress significantly
+    progress(newVal) {
+      if (this._seekToPhase && Math.abs(newVal - (this._internalPhase || 0)) > 0.002) {
+        this._seekToPhase(newVal);
+      }
+    },
+    // React to play/pause from parent
+    playing(newVal) {
+      if (this._togglePause) {
+        this._togglePause(newVal);
+      }
+    },
+    // React to speed changes from parent
+    speed(newVal) {
+      if (this._setSpeed) {
+        this._setSpeed(newVal);
+      }
+    },
   },
   methods: {
     initMap() {
@@ -64,7 +89,7 @@ export default {
       mapboxgl.accessToken = process.env.VUE_APP_MAPBOX_ACCESS_TOKEN || '';
       this.map = new mapboxgl.Map({
         container: this.$refs.mapContainer,
-        style: process.env.VUE_APP_MAPBOX_STYLE || 'mapbox://styles/mapbox/streets-v11',
+        style: process.env.VUE_APP_MAPBOX_STYLE || 'mapbox://styles/mapbox/standard',
         center: [
           parseFloat(process.env.VUE_APP_MAPBOX_CENTER_LNG) || -76.5410942407,
           parseFloat(process.env.VUE_APP_MAPBOX_CENTER_LAT) || 3.4300127118,
@@ -89,37 +114,40 @@ export default {
       // Define a startBearing for camera movement
       const startBearing = 0;
 
-      // Pre-calculate the total distance of the path
-      const totalDistance = turf.lineDistance(pathData.features[0]);
+      // Extract the LineString feature (first feature in the FeatureCollection)
+      const lineFeature = pathData.features[0];
 
-      // Variables to control pause/resume state.
+      // Pre-calculate the total distance of the path (2D; turf ignores the 3rd coordinate)
+      const totalDistance = turf.lineDistance(lineFeature);
+
+      // Animation state variables
       let startTime;
-      let isPaused = false;
-      let pauseTimestamp = null;
-      let speed = 1;
+      let isPaused = !this.playing;
+      let pauseTimestamp = isPaused ? performance.now() : null;
+      let speed = this.speed;
 
-      // Expose speed control so PlayBack can drive it
+      // Internal phase tracking for external-seek detection
+      this._internalPhase = 0;
+
+      // --- Speed control (called from speed watcher) ---
       this._setSpeed = (newSpeed) => {
         const now = performance.now();
         const effectiveNow = isPaused ? pauseTimestamp : now;
         if (startTime !== undefined) {
-          // Calculate current phase at old speed, then recompute startTime for new speed
           const elapsed = effectiveNow - startTime;
           const currentPhase = Math.min(elapsed / (duration / speed), 1);
           speed = newSpeed;
-          // Set startTime so that (effectiveNow - startTime) / (duration / speed) === currentPhase
           startTime = effectiveNow - currentPhase * (duration / speed);
         } else {
           speed = newSpeed;
         }
       };
 
-      // Expose pause/resume control so PlayBack can drive it
+      // --- Pause / resume control (called from playing watcher) ---
       this._togglePause = (playing) => {
         if (playing && isPaused) {
           // Resume
           isPaused = false;
-          this.isPlaying = true;
           if (startTime !== undefined && pauseTimestamp !== null) {
             startTime += performance.now() - pauseTimestamp;
           }
@@ -128,23 +156,197 @@ export default {
         } else if (!playing && !isPaused) {
           // Pause
           isPaused = true;
-          this.isPlaying = false;
           pauseTimestamp = performance.now();
+          if (this._animationFrame) {
+            cancelAnimationFrame(this._animationFrame);
+          }
         }
       };
 
-      // Add click handler to pause/resume the animation.
-      this.map.on('click', () => {
-        this._togglePause(!this.isPlaying);
-      });
+      // --- Seek control (called from progress watcher) ---
+      this._seekToPhase = (targetPhase) => {
+        const clampedPhase = Math.max(0, Math.min(1, targetPhase));
+        const now = performance.now();
+        const effectiveNow = isPaused ? (pauseTimestamp || now) : now;
 
-      // Add single marks source
-      this.map.addSource('marks', {
+        // Adjust startTime so animation phase matches the target
+        startTime = effectiveNow - clampedPhase * (duration / speed);
+        this._internalPhase = clampedPhase;
+
+        // Immediately update the map display at the new position
+        updateDisplay(clampedPhase);
+
+        // If animation had stopped (phase ≥ 1), restart the frame loop
+        if (!isPaused && clampedPhase < 1) {
+          if (this._animationFrame) cancelAnimationFrame(this._animationFrame);
+          if (this._restartTimeout) clearTimeout(this._restartTimeout);
+          this._animationFrame = window.requestAnimationFrame(frame);
+        }
+      };
+
+      // ---------------------------------------------------------------
+      // Marks system — preserved for future use.
+      // Set showMarks=true and provide marksData with Point features
+      // to reactivate the markers layer.
+      // ---------------------------------------------------------------
+      if (this.showMarks && marksData && marksData.features && marksData.features.length > 0) {
+        this.map.addSource('marks', {
+          type: 'geojson',
+          data: marksData,
+        });
+        this._loadMarkerImagesAndLayers();
+      }
+
+      // --- Route line source ---
+      this.map.addSource('line', {
         type: 'geojson',
-        data: marksData,
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: lineFeature.geometry.coordinates,
+          },
+        },
+        lineMetrics: true,
       });
 
-      // Load all marker images
+      // Add a layer to visualize the line
+      this.map.addLayer({
+        id: 'lineLayer',
+        type: 'line',
+        source: 'line',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#888',
+          'line-width': 8,
+        },
+      });
+
+      // --- Animated head marker (red circle at front of the path) ---
+      this.map.addSource('head', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [],
+          },
+        },
+      });
+      this.map.addLayer({
+        id: 'headLayer',
+        type: 'circle',
+        source: 'head',
+        paint: {
+          'circle-radius': 15,
+          'circle-color': 'red',
+        },
+      });
+
+      // --- Camera position computation ---
+      const computeCameraPosition = (pitch, bearing, targetPosition, altitude, smooth = false) => {
+        const bearingInRadian = bearing / 57.29;
+        const pitchInRadian = (90 - pitch) / 57.29;
+
+        const lngDiff =
+          ((altitude * Math.tan(pitchInRadian)) * Math.sin(-bearingInRadian)) / 70000;
+        const latDiff =
+          ((altitude * Math.tan(pitchInRadian)) * Math.cos(-bearingInRadian)) / 110000;
+
+        const newCameraPosition = {
+          center: [targetPosition[0] + lngDiff, targetPosition[1] - latDiff],
+          zoom: 17,
+          pitch: pitch,
+          bearing: bearing,
+        };
+        if (smooth) {
+          this.map.jumpTo(newCameraPosition);
+        } else {
+          this.map.easeTo(newCameraPosition);
+        }
+        return newCameraPosition;
+      };
+
+      // --- Display update helper (used by both animation frame and seek) ---
+      const updateDisplay = (phase) => {
+        const currentDistance = totalDistance * phase;
+        const { coordinates } = turf.along(lineFeature, currentDistance).geometry;
+        const [lng, lat] = coordinates;
+        const bearing = startBearing - phase * 300.0;
+
+        computeCameraPosition(45, bearing, [lng, lat], 50, true);
+
+        // Update the head circle
+        this.map.getSource('head').setData({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [lng, lat],
+          },
+        });
+
+        // Two-tone gradient on the route line
+        const safePhase = Math.max(phase, 0.0001);
+        this.map.setPaintProperty('lineLayer', 'line-gradient', [
+          'case',
+          ['<', ['line-progress'], safePhase],
+          [
+            'interpolate',
+            ['linear'],
+            ['line-progress'],
+            0,
+            'green',
+            safePhase,
+            'red',
+          ],
+          'rgba(0, 0, 0, 0)',
+        ]);
+      };
+
+      // --- Animation frame loop ---
+      const frame = (time) => {
+        if (!startTime) startTime = time;
+
+        // Safety: if paused between RAF schedule and execution, stop
+        if (isPaused) return;
+
+        // Clamp animationPhase to 1 to avoid overshooting
+        let animationPhase = Math.min((time - startTime) / (duration / speed), 1);
+
+        // Track internal phase for seek-detection in the progress watcher
+        this._internalPhase = animationPhase;
+
+        // Notify parent of the current progress
+        this.$emit('update:progress', animationPhase);
+
+        updateDisplay(animationPhase);
+
+        if (animationPhase < 1) {
+          this._animationFrame = window.requestAnimationFrame(frame);
+        } else {
+          // Animation complete — restart after a short delay
+          this._restartTimeout = setTimeout(() => {
+            startTime = undefined;
+            this._internalPhase = 0;
+            this.$emit('update:progress', 0);
+            this._animationFrame = window.requestAnimationFrame(frame);
+          }, 1500);
+        }
+      };
+
+      this._animationFrame = window.requestAnimationFrame(frame);
+    },
+
+    /**
+     * Marks: image loading and layer creation.
+     * Preserved intact for future use — currently inactive when showMarks=false.
+     * To reactivate: set showMarks=true and ensure marksData has Point features
+     * with a `name` property (e.g. "KM5", "Hidratacion", "Gatorade", "Salida", "Llegada").
+     */
+    _loadMarkerImagesAndLayers() {
       const markerImages = [
         { id: 'distance-marker', path: require('../assets/dist-mark.png') },
         { id: 'hydration-marker', path: require('../assets/punto-hidratacion-2.png') },
@@ -295,157 +497,6 @@ export default {
           }
         });
       });
-
-      // Add a GeoJSON source with a line string
-      this.map.addSource('line', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: {
-            type: 'LineString',
-            coordinates: pathData.features[0].geometry.coordinates,
-          },
-        },
-        lineMetrics: true,
-      });
-
-      // Add a layer to visualize the line
-      this.map.addLayer({
-        id: 'lineLayer',
-        type: 'line',
-        source: 'line',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#888',
-          'line-width': 8,
-        },
-      });
-
-      // Add a source and layer for the red circle at the head of the path
-      this.map.addSource('head', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [],
-          },
-        },
-      });
-      this.map.addLayer({
-        id: 'headLayer',
-        type: 'circle',
-        source: 'head',
-        paint: {
-          'circle-radius': 15,
-          'circle-color': 'red',
-        },
-      });
-
-      const frame = (time) => {
-        if (!startTime) startTime = time;
-
-        // If paused, skip updating and request the next frame.
-        if (isPaused) {
-          this._animationFrame = window.requestAnimationFrame(frame);
-          return;
-        }
-
-        // Clamp animationPhase to 1 to avoid overshooting
-        let animationPhase = Math.min((time - startTime) / (duration / speed), 1);
-
-        // Update reactive state for PlayBack
-        this.animationProgress = animationPhase;
-        const currentDistance = totalDistance * animationPhase;
-        this.currentDistance = currentDistance;
-        this.elapsedTime = time - startTime;
-        const { coordinates } = turf.along(pathData.features[0], currentDistance).geometry;
-        const [lng, lat] = coordinates;
-        const bearing = startBearing - animationPhase * 300.0;
-
-        // Update the camera position
-        const computeCameraPosition = (pitch, bearing, targetPosition, altitude, smooth = false) => {
-          const bearingInRadian = bearing / 57.29;
-          const pitchInRadian = (90 - pitch) / 57.29;
-
-          const lngDiff =
-            ((altitude * Math.tan(pitchInRadian)) * Math.sin(-bearingInRadian)) / 70000;
-          const latDiff =
-            ((altitude * Math.tan(pitchInRadian)) * Math.cos(-bearingInRadian)) / 110000;
-
-          const newCameraPosition = {
-            center: [targetPosition[0] + lngDiff, targetPosition[1] - latDiff],
-            zoom: 17,
-            pitch: pitch,
-            bearing: bearing,
-          };
-          if (smooth) {
-            this.map.jumpTo(newCameraPosition);
-          } else {
-            this.map.easeTo(newCameraPosition);
-          }
-          return newCameraPosition;
-        };
-
-        computeCameraPosition(45, bearing, [lng, lat], 50, true);
-
-        // Update the head circle so it stays synchronized with the camera and path
-        const headFeature = {
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [lng, lat],
-          },
-        };
-        this.map.getSource('head').setData(headFeature);
-
-        // Apply a two-tone gradient to the line layer
-        const safePhase = Math.max(animationPhase, 0.0001);
-        this.map.setPaintProperty('lineLayer', 'line-gradient', [
-          'case',
-          ['<', ['line-progress'], safePhase],
-          [
-            'interpolate',
-            ['linear'],
-            ['line-progress'],
-            0,
-            'green',
-            safePhase,
-            'red',
-          ],
-          'rgba(0, 0, 0, 0)',
-        ]);
-
-        if (animationPhase < 1) {
-          this._animationFrame = window.requestAnimationFrame(frame);
-        }
-      };
-
-      this._animationFrame = window.requestAnimationFrame(frame);
-
-      // Repeat the animation after a delay
-      this._repeatInterval = setInterval(() => {
-        startTime = undefined;
-        this.animationProgress = 0;
-        this.currentDistance = 0;
-        this.elapsedTime = 0;
-        this._animationFrame = window.requestAnimationFrame(frame);
-      }, duration + 1500);
-    },
-
-    handleTogglePlay(playing) {
-      if (this._togglePause) {
-        this._togglePause(playing);
-      }
-    },
-
-    handleSpeedChange(newSpeed) {
-      if (this._setSpeed) {
-        this._setSpeed(newSpeed);
-      }
     },
   },
 };
