@@ -2,47 +2,69 @@
   <div class="route-view">
     <div v-if="loading" class="loading">Loading route...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
-    <RouteMap
-      v-else
-      :pathData="pathData"
-      :marksData="marksData"
-      :duration="duration"
-    />
+    <!--
+      RouteMap and PlayBack are siblings inside the parent so that progress,
+      playing and speed state can be managed here and passed via props.
+      PlayBack overlays on the map using absolute positioning.
+    -->
+    <template v-else>
+      <RouteMap
+        :pathData="pathData"
+        :marksData="marksData"
+        :duration="duration"
+        :progress="progress"
+        :playing="isPlaying"
+        :speed="currentSpeed"
+        :showMarks="false"
+        @update:progress="onMapProgress"
+      />
+      <PlayBack
+        :playing="isPlaying"
+        :progress="progress"
+        :elevationProfile="elevationProfile"
+        :totalDistance="totalDistance"
+        @toggle-play="onTogglePlay"
+        @speed-change="onSpeedChange"
+        @update:progress="onPlaybackScrub"
+      />
+    </template>
   </div>
 </template>
 
 <script>
 import RouteMap from '@/components/RouteMap.vue';
+import PlayBack from '@/components/PlayBack.vue';
+import { parseElevationCsv } from '@/utils/parseElevationCsv';
+import eventData from '@/assets/event.json';
 
-// Route configuration: maps routeId to asset files and animation duration
-const ROUTE_CONFIG = {
-  '5k': {
-    path: () => import('@/assets/5k.json'),
-    marks: () => import('@/assets/marks_5k.json'),
-    duration: 180000,
-  },
-  '10k': {
-    path: () => import('@/assets/10k.json'),
-    marks: () => import('@/assets/marks_10k.json'),
-    duration: 300000,
-  },
-  '21k': {
-    path: () => import('@/assets/21k.json'),
-    marks: () => import('@/assets/marks_21k.json'),
-    duration: 550000,
-  },
-};
+// Build route lookup from centralized event config.
+// Asset files follow a naming convention based on route id:
+//   routes/{id}.geojson   — route geometry (GeoJSON FeatureCollection)
+//   elevation/{id}.csv    — elevation profile
+//   marks/{id}.json       — race marks (optional, for legacy routes)
+const ROUTE_MAP = Object.fromEntries(
+  eventData.routes.map(r => [r.id, r])
+);
 
 export default {
   name: 'RouteMapView',
   components: {
     RouteMap,
+    PlayBack,
   },
   data() {
     return {
+      // Route data
       pathData: null,
       marksData: null,
+      elevationProfile: [],
+      totalDistance: 0,
       duration: 300000,
+      // Shared playback state — single source of truth for both children
+      progress: 0,
+      isPlaying: true,
+      currentSpeed: 1,
+      // Loading state
       loading: true,
       error: null,
     };
@@ -61,8 +83,13 @@ export default {
       this.error = null;
       this.pathData = null;
       this.marksData = null;
+      this.elevationProfile = [];
+      this.totalDistance = 0;
+      this.progress = 0;
+      this.isPlaying = true;
+      this.currentSpeed = 1;
 
-      const config = ROUTE_CONFIG[routeId];
+      const config = ROUTE_MAP[routeId];
       if (!config) {
         this.error = `Route "${routeId}" not found.`;
         this.loading = false;
@@ -70,12 +97,52 @@ export default {
       }
 
       try {
-        const [pathModule, marksModule] = await Promise.all([
-          config.path(),
-          config.marks(),
-        ]);
-        this.pathData = pathModule.default || pathModule;
-        this.marksData = marksModule.default || marksModule;
+        if (config.legacy) {
+          // Legacy route: separate path + marks JSON files in routes/ and marks/
+          const [pathModule, marksModule] = await Promise.all([
+            import(/* webpackChunkName: "route-[request]" */ `@/assets/routes/${routeId}.json`),
+            import(/* webpackChunkName: "marks-[request]" */ `@/assets/marks/${routeId}.json`),
+          ]);
+          this.pathData = pathModule.default || pathModule;
+          this.marksData = marksModule.default || marksModule;
+          this.elevationProfile = [];
+          this.totalDistance = 0;
+        } else {
+          // Standard route: GeoJSON + elevation CSV
+          const [geojsonModule, csvModule] = await Promise.all([
+            import(/* webpackChunkName: "route-[request]" */ `@/assets/routes/${routeId}.geojson`),
+            import(/* webpackChunkName: "elev-[request]" */ `@/assets/elevation/${routeId}.csv`),
+          ]);
+
+          const geojson = geojsonModule.default || geojsonModule;
+          const csvText = csvModule.default || csvModule;
+
+          // Split GeoJSON into:
+          //   - pathData:  FeatureCollection with the LineString (route geometry)
+          //   - marksData: FeatureCollection with Point features (enriched waypoints)
+          const lineFeature = geojson.features.find(f => f.geometry.type === 'LineString');
+          const pointFeatures = geojson.features.filter(f => f.geometry.type === 'Point');
+
+          this.pathData = {
+            type: 'FeatureCollection',
+            features: lineFeature ? [lineFeature] : [],
+          };
+
+          // Marks preserved for future use (currently showMarks=false on RouteMap)
+          this.marksData = {
+            type: 'FeatureCollection',
+            features: pointFeatures,
+          };
+
+          // Parse elevation CSV into numeric-typed array
+          this.elevationProfile = parseElevationCsv(csvText);
+
+          // Total distance from the last profile point
+          if (this.elevationProfile.length > 0) {
+            this.totalDistance = this.elevationProfile[this.elevationProfile.length - 1].distance_km_cum;
+          }
+        }
+
         this.duration = config.duration;
       } catch (err) {
         console.error('Failed to load route data:', err);
@@ -83,6 +150,26 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+
+    // Animation drives progress updates — RouteMap → parent → PlayBack
+    onMapProgress(val) {
+      this.progress = val;
+    },
+
+    // Scrub drives progress updates — PlayBack → parent → RouteMap
+    onPlaybackScrub(val) {
+      this.progress = val;
+    },
+
+    // Play/pause state — PlayBack → parent → RouteMap (via playing prop)
+    onTogglePlay(playing) {
+      this.isPlaying = playing;
+    },
+
+    // Speed change — PlayBack → parent → RouteMap (via speed prop)
+    onSpeedChange(speed) {
+      this.currentSpeed = speed;
     },
   },
 };
@@ -92,6 +179,7 @@ export default {
 .route-view {
   width: 100%;
   height: 100vh;
+  position: relative;
 }
 
 .loading,
