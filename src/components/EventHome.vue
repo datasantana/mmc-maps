@@ -50,18 +50,18 @@
       <div class="routes-grid">
         <div class="route-card" v-for="route in routes" :key="route.id">
           <div class="card-image">
-            <img :src="getStaticMapUrl(route.id)" :alt="route.name + ' Route Map'" />
+            <img :src="getStaticMapUrl(route)" :alt="route.name + ' Route Map'" />
           </div>
           <div class="card-content">
             <div class="card-header">
               <h2 class="card-title">{{ route.name }}</h2>
-              <span :class="['badge', 'badge-' + route.properties.difficulty]">{{ capitalizeFirst(route.properties.difficulty) }}</span>
+              <span :class="['badge', 'badge-' + route.difficulty]">{{ capitalizeFirst(route.difficulty) }}</span>
             </div>
-            <p class="card-subtitle">{{ route.properties.type.toUpperCase() }}</p>
+            <p class="card-subtitle">{{ route.type.toUpperCase() }}</p>
             <p class="card-description">
-              {{ route.properties.description }}
+              {{ route.description }}
             </p>
-            <router-link :to="route.properties.path" class="card-btn">
+            <router-link :to="'/route/' + route.id" class="card-btn">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -94,7 +94,7 @@
 </template>
 
 <script>
-import routesData from '../assets/routes.json';
+import eventData from '../assets/event.json';
 
 export default {
   name: 'EventHome',
@@ -104,9 +104,9 @@ export default {
       city: process.env.VUE_APP_CITY || 'City',
       eventName: process.env.VUE_APP_EVENT || 'Event',
       eventDate: process.env.VUE_APP_DATE || '2026-01-01',
-      routes: routesData.routes,
+      routes: eventData.routes,
       mapboxToken: process.env.VUE_APP_MAPBOX_ACCESS_TOKEN || '',
-      mapboxStyle: 'mapbox://styles/geostudio/cmko3in5d000g01s10x794mhh',
+      mapboxStyle: process.env.VUE_APP_MAPBOX_STYLE || 'mapbox://styles/geostudio/cmbh999uh001901qt6te20agp',
       mapCenterLng: process.env.VUE_APP_MAPBOX_CENTER_LNG || '-76.5410942407',
       mapCenterLat: process.env.VUE_APP_MAPBOX_CENTER_LAT || '3.4300127118'
     }
@@ -146,10 +146,8 @@ export default {
     capitalizeFirst(str) {
       return str.charAt(0).toUpperCase() + str.slice(1);
     },
-    getStaticMapUrl(routeId) {
-      // Adjust zoom based on route distance
-      const zoomLevels = { '5k': 13, '10k': 12, '21k': 11 };
-      const zoom = zoomLevels[routeId] || 12;
+    getStaticMapUrl(route) {
+      const zoom = route.zoom || 12;
       return `https://api.mapbox.com/styles/v1/${this.mapboxStylePath}/static/${this.mapCenterLng},${this.mapCenterLat},${zoom},0/400x200?access_token=${this.mapboxToken}`;
     },
     scrollTo(id) {

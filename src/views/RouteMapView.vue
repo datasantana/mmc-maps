@@ -35,42 +35,16 @@
 import RouteMap from '@/components/RouteMap.vue';
 import PlayBack from '@/components/PlayBack.vue';
 import { parseElevationCsv } from '@/utils/parseElevationCsv';
+import eventData from '@/assets/event.json';
 
-// Route configuration: maps routeId to asset files and animation duration.
-// New routes use combined GeoJSON + elevation CSV.
-// Legacy routes use separate path JSON + marks JSON.
-const ROUTE_CONFIG = {
-  // --- New routes (GeoJSON with LineString + Points, CSV elevation profile) ---
-  '15k': {
-    geojson: () => import('@/assets/mc15k_route.geojson'),
-    csv: () => import('@/assets/mc15k_perfil_elevacion.csv'),
-    duration: 300000,
-  },
-  '42k': {
-    geojson: () => import('@/assets/mc42k_route.geojson'),
-    csv: () => import('@/assets/mc42k_perfil_elevacion.csv'),
-    duration: 600000,
-  },
-  // --- Legacy routes (preserved for backward compatibility) ---
-  '5k': {
-    path: () => import('@/assets/5k.json'),
-    marks: () => import('@/assets/marks_5k.json'),
-    duration: 180000,
-    legacy: true,
-  },
-  '10k': {
-    path: () => import('@/assets/10k.json'),
-    marks: () => import('@/assets/marks_10k.json'),
-    duration: 300000,
-    legacy: true,
-  },
-  '21k': {
-    path: () => import('@/assets/21k.json'),
-    marks: () => import('@/assets/marks_21k.json'),
-    duration: 550000,
-    legacy: true,
-  },
-};
+// Build route lookup from centralized event config.
+// Asset files follow a naming convention based on route id:
+//   routes/{id}.geojson   — route geometry (GeoJSON FeatureCollection)
+//   elevation/{id}.csv    — elevation profile
+//   marks/{id}.json       — race marks (optional, for legacy routes)
+const ROUTE_MAP = Object.fromEntries(
+  eventData.routes.map(r => [r.id, r])
+);
 
 export default {
   name: 'RouteMapView',
@@ -115,7 +89,7 @@ export default {
       this.isPlaying = true;
       this.currentSpeed = 1;
 
-      const config = ROUTE_CONFIG[routeId];
+      const config = ROUTE_MAP[routeId];
       if (!config) {
         this.error = `Route "${routeId}" not found.`;
         this.loading = false;
@@ -124,21 +98,20 @@ export default {
 
       try {
         if (config.legacy) {
-          // Legacy route: separate path + marks JSON files
+          // Legacy route: separate path + marks JSON files in routes/ and marks/
           const [pathModule, marksModule] = await Promise.all([
-            config.path(),
-            config.marks(),
+            import(/* webpackChunkName: "route-[request]" */ `@/assets/routes/${routeId}.json`),
+            import(/* webpackChunkName: "marks-[request]" */ `@/assets/marks/${routeId}.json`),
           ]);
           this.pathData = pathModule.default || pathModule;
           this.marksData = marksModule.default || marksModule;
-          // No elevation CSV for legacy routes — PlayBack will use its placeholder
           this.elevationProfile = [];
           this.totalDistance = 0;
         } else {
-          // New route: combined GeoJSON + elevation CSV
+          // Standard route: GeoJSON + elevation CSV
           const [geojsonModule, csvModule] = await Promise.all([
-            config.geojson(),
-            config.csv(),
+            import(/* webpackChunkName: "route-[request]" */ `@/assets/routes/${routeId}.geojson`),
+            import(/* webpackChunkName: "elev-[request]" */ `@/assets/elevation/${routeId}.csv`),
           ]);
 
           const geojson = geojsonModule.default || geojsonModule;
