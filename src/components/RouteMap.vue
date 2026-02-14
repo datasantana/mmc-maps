@@ -8,6 +8,7 @@
 <script>
 import mapboxgl from 'mapbox-gl';
 import turf from 'turf';
+import tokens from '@/theme/tokens';
 
 export default {
   name: 'RouteMap',
@@ -46,6 +47,11 @@ export default {
     showMarks: {
       type: Boolean,
       default: false,
+    },
+    // DOM element to use as fullscreen container (defaults to map container)
+    fullscreenContainer: {
+      type: Object,
+      default: null,
     },
   },
   emits: ['update:progress'],
@@ -100,6 +106,9 @@ export default {
 
       // Add navigation control with a compass and zoom controls.
       this.map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      // Add fullscreen control — use parent container so overlays (PlayBack, RaceTitle) stay visible
+      const fullscreenOptions = this.fullscreenContainer ? { container: this.fullscreenContainer } : {};
+      this.map.addControl(new mapboxgl.FullscreenControl(fullscreenOptions), 'top-right');
 
       this.map.on('load', () => {
         this.setupAnimation();
@@ -302,7 +311,7 @@ export default {
           'visibility': 'visible',
         },
         paint: {
-          'line-color': '#ff6600',
+          'line-color': tokens.colors.route.full,
           'line-width': 5,
           'line-opacity': 0.8,
           'line-dasharray': [2, 2],
@@ -333,7 +342,7 @@ export default {
           'visibility': 'none',
         },
         paint: {
-          'line-color': '#888',
+          'line-color': tokens.colors.route.animatedLine,
           'line-width': 8,
         },
       });
@@ -358,7 +367,7 @@ export default {
         },
         paint: {
           'circle-radius': 15,
-          'circle-color': 'red',
+          'circle-color': tokens.colors.route.head,
         },
       });
 
@@ -416,9 +425,9 @@ export default {
             ['linear'],
             ['line-progress'],
             0,
-            'green',
+            tokens.colors.route.gradientStart,
             safePhase,
-            'red',
+            tokens.colors.route.gradientEnd,
           ],
           'rgba(0, 0, 0, 0)',
         ]);
