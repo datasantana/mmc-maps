@@ -101,9 +101,9 @@ export default {
   data() {
     return {
       isLightTheme: false,
-      city: process.env.VUE_APP_CITY || 'City',
-      eventName: process.env.VUE_APP_EVENT || 'Event',
-      eventDate: process.env.VUE_APP_DATE || '2026-01-01',
+      city: eventData.city || 'City',
+      eventName: eventData.eventName || 'Event',
+      eventDate: eventData.eventDate || '2026-01-01',
       routes: eventData.routes,
       mapboxToken: process.env.VUE_APP_MAPBOX_ACCESS_TOKEN || '',
       mapboxStyle: process.env.VUE_APP_MAPBOX_STYLE || 'mapbox://styles/geostudio/cmbh999uh001901qt6te20agp',

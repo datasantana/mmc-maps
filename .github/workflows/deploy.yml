@@ -38,9 +38,6 @@ jobs:
           echo "VUE_APP_MAPBOX_CENTER_LAT=${{ secrets.VUE_APP_MAPBOX_CENTER_LAT }}" >> .env
           echo "VUE_APP_MAPBOX_ZOOM=${{ secrets.VUE_APP_MAPBOX_ZOOM }}" >> .env
           echo "VUE_APP_MAPBOX_PITCH=${{ secrets.VUE_APP_MAPBOX_PITCH }}" >> .env
-          echo "VUE_APP_CITY=${{ secrets.VUE_APP_CITY }}" >> .env
-          echo "VUE_APP_EVENT=${{ secrets.VUE_APP_EVENT }}" >> .env
-          echo "VUE_APP_DATE=${{ secrets.VUE_APP_DATE }}" >> .env
         
       - name: Build
         run: npm run build
