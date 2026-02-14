@@ -81,7 +81,7 @@ export default {
       routeConfig: null,
       // Shared playback state — single source of truth for both children
       progress: 0,
-      isPlaying: true,
+      isPlaying: false,
       currentSpeed: 1,
       // Loading state
       loading: true,
@@ -106,7 +106,7 @@ export default {
       this.totalDistance = 0;
       this.routeConfig = null;
       this.progress = 0;
-      this.isPlaying = true;
+      this.isPlaying = false;
       this.currentSpeed = 1;
 
       const config = ROUTE_MAP[routeId];
