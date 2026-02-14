@@ -18,6 +18,16 @@
         :showMarks="false"
         @update:progress="onMapProgress"
       />
+      <RaceTitle
+        v-if="routeConfig"
+        :name="routeConfig.name"
+        :type="routeConfig.type"
+        :city="eventCity"
+        :distance="routeConfig.distance"
+        :distanceUnit="routeConfig.distanceUnit"
+        :difficulty="routeConfig.difficulty"
+        :description="routeConfig.description"
+      />
       <PlayBack
         :playing="isPlaying"
         :progress="progress"
@@ -34,6 +44,7 @@
 <script>
 import RouteMap from '@/components/RouteMap.vue';
 import PlayBack from '@/components/PlayBack.vue';
+import RaceTitle from '@/components/RaceTitle.vue';
 import { parseElevationCsv } from '@/utils/parseElevationCsv';
 import eventData from '@/assets/event.json';
 
@@ -46,11 +57,15 @@ const ROUTE_MAP = Object.fromEntries(
   eventData.routes.map(r => [r.id, r])
 );
 
+// Event-level city from centralized config
+const EVENT_CITY = eventData.city || '';
+
 export default {
   name: 'RouteMapView',
   components: {
     RouteMap,
     PlayBack,
+    RaceTitle,
   },
   data() {
     return {
@@ -60,6 +75,10 @@ export default {
       elevationProfile: [],
       totalDistance: 0,
       duration: 300000,
+      // Event-level city
+      eventCity: EVENT_CITY,
+      // Route metadata for RaceTitle
+      routeConfig: null,
       // Shared playback state — single source of truth for both children
       progress: 0,
       isPlaying: true,
@@ -85,6 +104,7 @@ export default {
       this.marksData = null;
       this.elevationProfile = [];
       this.totalDistance = 0;
+      this.routeConfig = null;
       this.progress = 0;
       this.isPlaying = true;
       this.currentSpeed = 1;
@@ -95,6 +115,8 @@ export default {
         this.loading = false;
         return;
       }
+
+      this.routeConfig = config;
 
       try {
         if (config.legacy) {
