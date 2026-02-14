@@ -57,10 +57,10 @@ body {
   /* Difficulty badges — dark */
   --color-diff-easy-bg: rgba(0, 230, 118, 0.2);
   --color-diff-easy-text: #00e676;
-  --color-diff-moderate-bg: rgba(255, 82, 82, 0.2);
-  --color-diff-moderate-text: #ff5252;
-  --color-diff-challenging-bg: rgba(255, 171, 64, 0.2);
-  --color-diff-challenging-text: #ffab40;
+  --color-diff-moderate-bg: rgba(255, 171, 64, 0.2);
+  --color-diff-moderate-text: #ffab40;
+  --color-diff-challenging-bg: rgba(255, 82, 82, 0.2);
+  --color-diff-challenging-text: #ff5252;
 
   /* Route colours (map) */
   --color-route-full: #ff6600;
@@ -106,10 +106,10 @@ body {
   /* Difficulty badges — light */
   --color-diff-easy-bg: rgba(0, 200, 83, 0.15);
   --color-diff-easy-text: #00a152;
-  --color-diff-moderate-bg: rgba(211, 47, 47, 0.12);
-  --color-diff-moderate-text: #c62828;
-  --color-diff-challenging-bg: rgba(230, 126, 34, 0.12);
-  --color-diff-challenging-text: #e65100;
+  --color-diff-moderate-bg: rgba(230, 126, 34, 0.12);
+  --color-diff-moderate-text: #e65100;
+  --color-diff-challenging-bg: rgba(211, 47, 47, 0.12);
+  --color-diff-challenging-text: #c62828;
 
   /* Accent variant for light mode readability */
   --color-accent-dark: #00c853;
