@@ -47,6 +47,11 @@ export default {
       type: Boolean,
       default: false,
     },
+    // DOM element to use as fullscreen container (defaults to map container)
+    fullscreenContainer: {
+      type: Object,
+      default: null,
+    },
   },
   emits: ['update:progress'],
   mounted() {
@@ -100,6 +105,9 @@ export default {
 
       // Add navigation control with a compass and zoom controls.
       this.map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      // Add fullscreen control — use parent container so overlays (PlayBack, RaceTitle) stay visible
+      const fullscreenOptions = this.fullscreenContainer ? { container: this.fullscreenContainer } : {};
+      this.map.addControl(new mapboxgl.FullscreenControl(fullscreenOptions), 'top-right');
 
       this.map.on('load', () => {
         this.setupAnimation();

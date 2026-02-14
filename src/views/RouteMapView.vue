@@ -1,5 +1,5 @@
 <template>
-  <div class="route-view">
+  <div class="route-view" ref="routeViewContainer">
     <div v-if="loading" class="loading">Loading route...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <!--
@@ -16,6 +16,7 @@
         :playing="isPlaying"
         :speed="currentSpeed"
         :showMarks="false"
+        :fullscreenContainer="$refs.routeViewContainer"
         @update:progress="onMapProgress"
       />
       <RaceTitle
@@ -202,6 +203,13 @@ export default {
   width: 100%;
   height: 100vh;
   position: relative;
+  background: #0a0a0a;
+}
+
+/* Ensure the container fills the screen when Mapbox fullscreen control is active */
+.route-view:fullscreen {
+  width: 100%;
+  height: 100%;
 }
 
 .loading,
