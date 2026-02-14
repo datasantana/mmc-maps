@@ -4,7 +4,7 @@
       <span :class="['race-title__badge', difficultyClass]">{{ type }}</span>
       <span class="race-title__city">{{ city }}</span>
     </div>
-    <h1 class="race-title__name">Route {{ name }}</h1>
+    <h1 class="race-title__name">{{ name }}</h1>
     <p class="race-title__description">{{ description }}</p>
   </div>
 </template>

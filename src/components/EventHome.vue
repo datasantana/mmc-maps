@@ -107,7 +107,7 @@ export default {
       eventDate: eventData.eventDate || '2026-01-01',
       routes: eventData.routes,
       mapboxToken: process.env.VUE_APP_MAPBOX_ACCESS_TOKEN || '',
-      mapboxStyle: process.env.VUE_APP_MAPBOX_STYLE || 'mapbox://styles/geostudio/cmbh999uh001901qt6te20agp',
+      mapboxStyle: 'mapbox://styles/mapbox/streets-v11',
       mapCenterLng: process.env.VUE_APP_MAPBOX_CENTER_LNG || '-76.5410942407',
       mapCenterLat: process.env.VUE_APP_MAPBOX_CENTER_LAT || '3.4300127118'
     }
@@ -384,20 +384,20 @@ export default {
 }
 
 .badge-easy {
-  background-color: transparent;
-  border: 1px solid var(--color-text-muted);
-  color: var(--color-text-muted);
+  background: var(--color-diff-easy-bg);
+  color: var(--color-diff-easy-text);
+  border: none;
 }
 
 .badge-moderate {
-  background-color: transparent;
-  border: 1px solid var(--color-text-muted);
-  color: var(--color-text-muted);
+  background: var(--color-diff-moderate-bg);
+  color: var(--color-diff-moderate-text);
+  border: none;
 }
 
 .badge-challenging {
-  background-color: var(--color-primary);
-  color: #000;
+  background: var(--color-diff-challenging-bg);
+  color: var(--color-diff-challenging-text);
   border: none;
 }
 
