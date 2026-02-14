@@ -47,6 +47,11 @@ export default {
       type: Boolean,
       default: false,
     },
+    // DOM element to use as fullscreen container (defaults to map container)
+    fullscreenContainer: {
+      type: Object,
+      default: null,
+    },
   },
   emits: ['update:progress'],
   mounted() {
@@ -94,12 +99,15 @@ export default {
           parseFloat(process.env.VUE_APP_MAPBOX_CENTER_LNG) || -76.5410942407,
           parseFloat(process.env.VUE_APP_MAPBOX_CENTER_LAT) || 3.4300127118,
         ],
-        zoom: parseInt(process.env.VUE_APP_MAPBOX_ZOOM) || 17,
-        pitch: parseInt(process.env.VUE_APP_MAPBOX_PITCH) || 45,
+        zoom: 12,
+        pitch: 0,
       });
 
       // Add navigation control with a compass and zoom controls.
       this.map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      // Add fullscreen control — use parent container so overlays (PlayBack, RaceTitle) stay visible
+      const fullscreenOptions = this.fullscreenContainer ? { container: this.fullscreenContainer } : {};
+      this.map.addControl(new mapboxgl.FullscreenControl(fullscreenOptions), 'top-right');
 
       this.map.on('load', () => {
         this.setupAnimation();
@@ -122,12 +130,20 @@ export default {
 
       // Animation state variables
       let startTime;
-      let isPaused = !this.playing;
-      let pauseTimestamp = isPaused ? performance.now() : null;
+      let isPaused = true; // Always start paused — user must press play
+      let pauseTimestamp = performance.now();
       let speed = this.speed;
+      let hasStarted = false; // Whether the animation has ever been started
+      let savedCameraState = null; // Camera state saved on pause for resume fly-back
 
       // Internal phase tracking for external-seek detection
       this._internalPhase = 0;
+
+      // --- Compute route bounds for fit operations ---
+      const routeBounds = new mapboxgl.LngLatBounds();
+      lineFeature.geometry.coordinates.forEach(coord => {
+        routeBounds.extend([coord[0], coord[1]]);
+      });
 
       // --- Speed control (called from speed watcher) ---
       this._setSpeed = (newSpeed) => {
@@ -143,28 +159,104 @@ export default {
         }
       };
 
-      // --- Pause / resume control (called from playing watcher) ---
+      // --- Pause / resume / first-play control (called from playing watcher) ---
       this._togglePause = (playing) => {
-        if (playing && isPaused) {
-          // Resume
+        if (playing && !hasStarted) {
+          // ── FIRST PLAY ──────────────────────────────────────────────
+          hasStarted = true;
           isPaused = false;
-          if (startTime !== undefined && pauseTimestamp !== null) {
-            startTime += performance.now() - pauseTimestamp;
-          }
           pauseTimestamp = null;
-          this._animationFrame = window.requestAnimationFrame(frame);
+
+          // Initialize the animated progress display at phase 0
+          updateDisplay(0, false);
+
+          // Show animated layers, hide full route
+          this.map.setLayoutProperty('lineLayer', 'visibility', 'visible');
+          this.map.setLayoutProperty('headLayer', 'visibility', 'visible');
+          this.map.setLayoutProperty('fullRouteLayer', 'visibility', 'none');
+
+          // Fly to start point of route (pitch 45, zoom 17)
+          const startCoords = lineFeature.geometry.coordinates[0];
+          this.map.flyTo({
+            center: [startCoords[0], startCoords[1]],
+            zoom: 17,
+            pitch: 45,
+            bearing: 0,
+            duration: 2000,
+          });
+
+          this.map.once('moveend', () => {
+            startTime = undefined;
+            this._animationFrame = window.requestAnimationFrame(frame);
+          });
+
+        } else if (playing && isPaused) {
+          // ── RESUME FROM PAUSE ───────────────────────────────────────
+          isPaused = false;
+
+          // Hide full route
+          this.map.setLayoutProperty('fullRouteLayer', 'visibility', 'none');
+
+          if (savedCameraState) {
+            this.map.flyTo({
+              ...savedCameraState,
+              duration: 1500,
+            });
+
+            this.map.once('moveend', () => {
+              if (startTime !== undefined && pauseTimestamp !== null) {
+                startTime += performance.now() - pauseTimestamp;
+              }
+              pauseTimestamp = null;
+              savedCameraState = null;
+              this._animationFrame = window.requestAnimationFrame(frame);
+            });
+          } else {
+            if (startTime !== undefined && pauseTimestamp !== null) {
+              startTime += performance.now() - pauseTimestamp;
+            }
+            pauseTimestamp = null;
+            this._animationFrame = window.requestAnimationFrame(frame);
+          }
+
         } else if (!playing && !isPaused) {
-          // Pause
+          // ── PAUSE ───────────────────────────────────────────────────
           isPaused = true;
           pauseTimestamp = performance.now();
           if (this._animationFrame) {
             cancelAnimationFrame(this._animationFrame);
           }
+          if (this._restartTimeout) {
+            clearTimeout(this._restartTimeout);
+          }
+
+          // Save current camera state for resume fly-back
+          savedCameraState = {
+            center: this.map.getCenter().toArray(),
+            zoom: this.map.getZoom(),
+            pitch: this.map.getPitch(),
+            bearing: this.map.getBearing(),
+          };
+
+          // Show full route in gray behind animated progress
+          this.map.setLayoutProperty('fullRouteLayer', 'visibility', 'visible');
+
+          // Fly to fit route extent, top-down view
+          const fitCamera = this.map.cameraForBounds(routeBounds, { padding: 50 });
+          this.map.flyTo({
+            center: fitCamera.center,
+            zoom: fitCamera.zoom,
+            pitch: 0,
+            bearing: 0,
+            duration: 1500,
+          });
         }
       };
 
       // --- Seek control (called from progress watcher) ---
       this._seekToPhase = (targetPhase) => {
+        if (!hasStarted) return; // Cannot seek before animation starts
+
         const clampedPhase = Math.max(0, Math.min(1, targetPhase));
         const now = performance.now();
         const effectiveNow = isPaused ? (pauseTimestamp || now) : now;
@@ -173,8 +265,8 @@ export default {
         startTime = effectiveNow - clampedPhase * (duration / speed);
         this._internalPhase = clampedPhase;
 
-        // Immediately update the map display at the new position
-        updateDisplay(clampedPhase);
+        // Update display — skip camera movement when paused (overview mode)
+        updateDisplay(clampedPhase, !isPaused);
 
         // If animation had stopped (phase ≥ 1), restart the frame loop
         if (!isPaused && clampedPhase < 1) {
@@ -197,7 +289,35 @@ export default {
         this._loadMarkerImagesAndLayers();
       }
 
-      // --- Route line source ---
+      // --- Full route layer (visible initially and when paused) ---
+      this.map.addSource('full-route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: lineFeature.geometry.coordinates,
+          },
+        },
+      });
+      this.map.addLayer({
+        id: 'fullRouteLayer',
+        type: 'line',
+        source: 'full-route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+          'visibility': 'visible',
+        },
+        paint: {
+          'line-color': '#ff6600',
+          'line-width': 5,
+          'line-opacity': 0.8,
+          'line-dasharray': [2, 2],
+        },
+      });
+
+      // --- Animated route line source (initially hidden) ---
       this.map.addSource('line', {
         type: 'geojson',
         data: {
@@ -210,7 +330,7 @@ export default {
         lineMetrics: true,
       });
 
-      // Add a layer to visualize the line
+      // Add a layer to visualize the animated line (initially hidden)
       this.map.addLayer({
         id: 'lineLayer',
         type: 'line',
@@ -218,6 +338,7 @@ export default {
         layout: {
           'line-join': 'round',
           'line-cap': 'round',
+          'visibility': 'none',
         },
         paint: {
           'line-color': '#888',
@@ -240,6 +361,9 @@ export default {
         id: 'headLayer',
         type: 'circle',
         source: 'head',
+        layout: {
+          'visibility': 'none',
+        },
         paint: {
           'circle-radius': 15,
           'circle-color': 'red',
@@ -271,13 +395,15 @@ export default {
       };
 
       // --- Display update helper (used by both animation frame and seek) ---
-      const updateDisplay = (phase) => {
+      const updateDisplay = (phase, moveCamera = true) => {
         const currentDistance = totalDistance * phase;
         const { coordinates } = turf.along(lineFeature, currentDistance).geometry;
         const [lng, lat] = coordinates;
-        const bearing = startBearing - phase * 300.0;
 
-        computeCameraPosition(45, bearing, [lng, lat], 50, true);
+        if (moveCamera) {
+          const bearing = startBearing - phase * 300.0;
+          computeCameraPosition(45, bearing, [lng, lat], 50, true);
+        }
 
         // Update the head circle
         this.map.getSource('head').setData({
@@ -337,7 +463,14 @@ export default {
         }
       };
 
-      this._animationFrame = window.requestAnimationFrame(frame);
+      // --- Fit map to full route extent, top-down view (initial state) ---
+      this.map.fitBounds(routeBounds, {
+        padding: 50,
+        pitch: 0,
+        bearing: 0,
+      });
+
+      // Do NOT start animation automatically — wait for user to press play
     },
 
     /**
