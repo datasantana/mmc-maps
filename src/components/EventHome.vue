@@ -1,5 +1,5 @@
 <template>
-  <div :class="['event-home', { 'light-theme': isLightTheme }]">
+  <div class="event-home">
     <!-- Header -->
     <header class="header">
       <div class="header-content">
@@ -95,12 +95,13 @@
 
 <script>
 import eventData from '../assets/event.json';
+import { themeMixin } from '@/theme';
 
 export default {
   name: 'EventHome',
+  mixins: [themeMixin],
   data() {
     return {
-      isLightTheme: false,
       city: eventData.city || 'City',
       eventName: eventData.eventName || 'Event',
       eventDate: eventData.eventDate || '2026-01-01',
@@ -128,21 +129,7 @@ export default {
       return this.mapboxStyle.replace('mapbox://styles/', '');
     }
   },
-  mounted() {
-    // Check for saved theme preference
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      this.isLightTheme = savedTheme === 'light';
-    } else {
-      // Check system preference
-      this.isLightTheme = window.matchMedia('(prefers-color-scheme: light)').matches;
-    }
-  },
   methods: {
-    toggleTheme() {
-      this.isLightTheme = !this.isLightTheme;
-      localStorage.setItem('theme', this.isLightTheme ? 'light' : 'dark');
-    },
     capitalizeFirst(str) {
       return str.charAt(0).toUpperCase() + str.slice(1);
     },
@@ -164,36 +151,25 @@ export default {
 /* Base styles */
 .event-home {
   min-height: 100vh;
-  background-color: #0a0a0a;
-  color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* Light theme */
-.event-home.light-theme {
-  background-color: #ffffff;
-  color: #1a1a1a;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  transition: var(--transition-theme);
 }
 
 /* Header */
 .header {
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid var(--color-border);
   padding: 1rem 2rem;
   position: sticky;
   top: 0;
-  background-color: #0a0a0a;
+  background-color: var(--color-bg);
   z-index: 100;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
-.light-theme .header {
-  background-color: #ffffff;
-  border-bottom-color: #e5e5e5;
+  transition: var(--transition-theme);
 }
 
 .header-content {
-  max-width: 1400px;
+  max-width: var(--max-width);
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -209,7 +185,7 @@ export default {
 .logo-icon {
   width: 32px;
   height: 32px;
-  color: #22c55e;
+  color: var(--color-primary);
 }
 
 .logo-text {
@@ -223,22 +199,15 @@ export default {
 }
 
 .nav-link {
-  color: #a1a1a1;
+  color: var(--color-text-muted);
   text-decoration: none;
   font-size: 0.95rem;
   transition: color 0.2s ease;
+  cursor: pointer;
 }
 
 .nav-link:hover {
-  color: #ffffff;
-}
-
-.light-theme .nav-link {
-  color: #666;
-}
-
-.light-theme .nav-link:hover {
-  color: #1a1a1a;
+  color: var(--color-text);
 }
 
 .header-actions {
@@ -260,24 +229,16 @@ export default {
 .theme-toggle .icon {
   width: 24px;
   height: 24px;
-  color: #a1a1a1;
+  color: var(--color-text-muted);
   transition: color 0.2s ease;
 }
 
 .theme-toggle:hover .icon {
-  color: #ffffff;
-}
-
-.light-theme .theme-toggle .icon {
-  color: #666;
-}
-
-.light-theme .theme-toggle:hover .icon {
-  color: #1a1a1a;
+  color: var(--color-text);
 }
 
 .register-btn {
-  background-color: #22c55e;
+  background-color: var(--color-primary);
   color: #000;
   border: none;
   padding: 0.6rem 1.2rem;
@@ -288,7 +249,7 @@ export default {
 }
 
 .register-btn:hover {
-  background-color: #16a34a;
+  background-color: var(--color-primary-hover);
 }
 
 /* Hero Section */
@@ -309,7 +270,7 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  color: #22c55e;
+  color: var(--color-primary);
   font-size: 1.1rem;
 }
 
@@ -321,7 +282,7 @@ export default {
 /* Routes Section */
 .routes-section {
   padding: 2rem;
-  max-width: 1400px;
+  max-width: var(--max-width);
   margin: 0 auto;
 }
 
@@ -364,8 +325,8 @@ export default {
 
 /* Route Card */
 .route-card {
-  background-color: #141414;
-  border-radius: 12px;
+  background-color: var(--color-bg-elevated);
+  border-radius: var(--radius-card);
   overflow: hidden;
   transition: transform 0.2s ease, background-color 0.3s ease;
   display: flex;
@@ -374,11 +335,6 @@ export default {
 
 .route-card:hover {
   transform: translateY(-4px);
-}
-
-.light-theme .route-card {
-  background-color: #f5f5f5;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .card-image {
@@ -429,34 +385,24 @@ export default {
 
 .badge-easy {
   background-color: transparent;
-  border: 1px solid #a1a1a1;
-  color: #a1a1a1;
-}
-
-.light-theme .badge-easy {
-  border-color: #666;
-  color: #666;
+  border: 1px solid var(--color-text-muted);
+  color: var(--color-text-muted);
 }
 
 .badge-moderate {
   background-color: transparent;
-  border: 1px solid #a1a1a1;
-  color: #a1a1a1;
-}
-
-.light-theme .badge-moderate {
-  border-color: #666;
-  color: #666;
+  border: 1px solid var(--color-text-muted);
+  color: var(--color-text-muted);
 }
 
 .badge-challenging {
-  background-color: #22c55e;
+  background-color: var(--color-primary);
   color: #000;
   border: none;
 }
 
 .card-subtitle {
-  color: #22c55e;
+  color: var(--color-primary);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 1px;
@@ -464,15 +410,11 @@ export default {
 }
 
 .card-description {
-  color: #a1a1a1;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
   line-height: 1.6;
   margin: 0;
   flex-grow: 1;
-}
-
-.light-theme .card-description {
-  color: #666;
 }
 
 .card-btn {
@@ -483,9 +425,9 @@ export default {
   width: 100%;
   padding: 0.75rem 1rem;
   background-color: transparent;
-  border: 1px solid #333;
-  border-radius: 8px;
-  color: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  color: var(--color-text);
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -495,18 +437,8 @@ export default {
 }
 
 .card-btn:hover {
-  background-color: #222;
-  border-color: #444;
-}
-
-.light-theme .card-btn {
-  border-color: #ddd;
-  color: #1a1a1a;
-}
-
-.light-theme .card-btn:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--color-card-hover-bg);
+  border-color: var(--color-text-muted);
 }
 
 .btn-icon {
@@ -516,18 +448,14 @@ export default {
 
 /* Footer */
 .footer {
-  border-top: 1px solid #222;
+  border-top: 1px solid var(--color-border);
   padding: 3rem 2rem;
   margin-top: 4rem;
   transition: border-color 0.3s ease;
 }
 
-.light-theme .footer {
-  border-top-color: #e5e5e5;
-}
-
 .footer-content {
-  max-width: 1400px;
+  max-width: var(--max-width);
   margin: 0 auto;
   text-align: center;
 }
@@ -554,31 +482,20 @@ export default {
 }
 
 .footer-links a {
-  color: #a1a1a1;
+  color: var(--color-text-muted);
   text-decoration: none;
   font-size: 0.9rem;
   transition: color 0.2s ease;
+  cursor: pointer;
 }
 
 .footer-links a:hover {
-  color: #ffffff;
-}
-
-.light-theme .footer-links a {
-  color: #666;
-}
-
-.light-theme .footer-links a:hover {
-  color: #1a1a1a;
+  color: var(--color-text);
 }
 
 .footer-copyright {
-  color: #666;
+  color: var(--color-text-faint);
   font-size: 0.85rem;
   margin: 0;
-}
-
-.light-theme .footer-copyright {
-  color: #999;
 }
 </style>

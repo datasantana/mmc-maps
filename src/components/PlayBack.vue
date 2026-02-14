@@ -1,5 +1,5 @@
 <template>
-  <div :class="['playback-bar', { 'light-theme': isLightTheme }]">
+  <div class="playback-bar">
     <!-- Play/Pause Button -->
     <button class="play-pause-btn" @click="togglePlay" :aria-label="isPlaying ? 'Pause' : 'Play'">
       <!-- Pause icon -->
@@ -88,8 +88,11 @@
 </template>
 
 <script>
+import { themeMixin } from '@/theme';
+
 export default {
   name: 'PlayBack',
+  mixins: [themeMixin],
   props: {
     playing: {
       type: Boolean,
@@ -121,7 +124,6 @@ export default {
   emits: ['toggle-play', 'speed-change', 'update:progress'],
   data() {
     return {
-      isLightTheme: false,
       speedOptions: [1, 1.5, 2, 3, 5],
       speedIndex: 0,
       isScrubbing: false,
@@ -220,28 +222,7 @@ export default {
       return points.join(' ');
     },
   },
-  mounted() {
-    // Inherit theme from localStorage (same as EventHome)
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      this.isLightTheme = savedTheme === 'light';
-    } else {
-      this.isLightTheme = window.matchMedia('(prefers-color-scheme: light)').matches;
-    }
-
-    // Listen for theme changes from other components
-    this._storageHandler = () => {
-      const theme = localStorage.getItem('theme');
-      if (theme) {
-        this.isLightTheme = theme === 'light';
-      }
-    };
-    window.addEventListener('storage', this._storageHandler);
-  },
   beforeUnmount() {
-    if (this._storageHandler) {
-      window.removeEventListener('storage', this._storageHandler);
-    }
     // Clean up scrub listeners in case component unmounts during a drag
     if (this._onScrubMove) {
       document.removeEventListener('mousemove', this._onScrubMove);
@@ -350,26 +331,18 @@ export default {
   align-items: center;
   gap: 12px;
   padding: 8px 16px;
-  background: rgba(18, 18, 18, 0.92);
+  background: var(--color-bg-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
   z-index: 1000;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  color: #ffffff;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  font-family: var(--font-family);
+  color: var(--color-text);
+  box-shadow: 0 8px 32px var(--color-shadow);
   min-width: 680px;
   max-width: 95vw;
-  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-}
-
-/* Light theme */
-.playback-bar.light-theme {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  color: #1a1a1a;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  transition: var(--transition-theme);
 }
 
 /* Play/Pause Button */
@@ -378,7 +351,7 @@ export default {
   height: 40px;
   border-radius: 50%;
   border: none;
-  background: #00e676;
+  background: var(--color-accent);
   color: #0a0a0a;
   display: flex;
   align-items: center;
@@ -389,7 +362,7 @@ export default {
 }
 
 .play-pause-btn:hover {
-  background: #00ff84;
+  background: var(--color-accent-hover);
   transform: scale(1.08);
 }
 
@@ -407,8 +380,8 @@ export default {
   min-width: 36px;
   height: 28px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-speed-btn-border);
+  background: var(--color-speed-btn-bg);
   color: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -421,16 +394,7 @@ export default {
 }
 
 .speed-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.light-theme .speed-btn {
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.light-theme .speed-btn:hover {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--color-speed-btn-hover-bg);
 }
 
 /* Progress Section */
@@ -483,11 +447,7 @@ export default {
 }
 
 .stat-value.accent {
-  color: #00e676;
-}
-
-.light-theme .stat-value.accent {
-  color: #00c853;
+  color: var(--color-accent);
 }
 
 /* Progress Track */
@@ -522,7 +482,7 @@ export default {
 .head-line {
   width: 2px;
   height: 100%;
-  background: #00e676;
+  background: var(--color-accent);
   border-radius: 1px;
 }
 
@@ -530,7 +490,7 @@ export default {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #00e676;
+  background: var(--color-accent);
   position: absolute;
   bottom: -3px;
   left: 50%;
@@ -541,18 +501,14 @@ export default {
 /* Progress Bar */
 .progress-bar-track {
   height: 3px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-progress-track);
   border-radius: 2px;
   overflow: hidden;
 }
 
-.light-theme .progress-bar-track {
-  background: rgba(0, 0, 0, 0.08);
-}
-
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00e676, #00c853);
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-dark));
   border-radius: 2px;
   transition: width 0.1s linear;
 }
