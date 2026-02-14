@@ -1,5 +1,5 @@
 <template>
-  <div :class="['race-title', { 'light-theme': isLightTheme }]">
+  <div class="race-title">
     <div class="race-title__header">
       <span :class="['race-title__badge', difficultyClass]">{{ type }}</span>
       <span class="race-title__city">{{ city }}</span>
@@ -10,8 +10,11 @@
 </template>
 
 <script>
+import { themeMixin } from '@/theme';
+
 export default {
   name: 'RaceTitle',
+  mixins: [themeMixin],
   props: {
     /** Route display name, e.g. "21K" */
     name: {
@@ -50,9 +53,7 @@ export default {
     },
   },
   data() {
-    return {
-      isLightTheme: false,
-    };
+    return {};
   },
   computed: {
     /** Format total distance with locale separators, e.g. "21,097m" or "15km" */
@@ -70,29 +71,6 @@ export default {
       return `race-title__badge--${this.difficulty}`;
     },
   },
-  mounted() {
-    // Inherit theme from localStorage (same pattern as PlayBack)
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      this.isLightTheme = savedTheme === 'light';
-    } else {
-      this.isLightTheme = window.matchMedia('(prefers-color-scheme: light)').matches;
-    }
-
-    // Listen for theme changes from other components
-    this._storageHandler = () => {
-      const theme = localStorage.getItem('theme');
-      if (theme) {
-        this.isLightTheme = theme === 'light';
-      }
-    };
-    window.addEventListener('storage', this._storageHandler);
-  },
-  beforeUnmount() {
-    if (this._storageHandler) {
-      window.removeEventListener('storage', this._storageHandler);
-    }
-  },
 };
 </script>
 
@@ -103,24 +81,16 @@ export default {
   left: 24px;
   z-index: 1000;
   padding: 16px 20px;
-  background: rgba(18, 18, 18, 0.92);
+  background: var(--color-bg-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  color: #ffffff;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+  font-family: var(--font-family);
+  color: var(--color-text);
+  box-shadow: 0 8px 32px var(--color-shadow);
   max-width: 320px;
-  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-}
-
-/* Light theme */
-.race-title.light-theme {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  color: #1a1a1a;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  transition: var(--transition-theme);
 }
 
 /* Header row: badge + distance */
@@ -146,33 +116,18 @@ export default {
 
 /* Difficulty colour variants */
 .race-title__badge--easy {
-  background: rgba(0, 230, 118, 0.2);
-  color: #00e676;
+  background: var(--color-diff-easy-bg);
+  color: var(--color-diff-easy-text);
 }
 
 .race-title__badge--moderate {
-  background: rgba(255, 82, 82, 0.2);
-  color: #ff5252;
+  background: var(--color-diff-moderate-bg);
+  color: var(--color-diff-moderate-text);
 }
 
 .race-title__badge--challenging {
-  background: rgba(255, 171, 64, 0.2);
-  color: #ffab40;
-}
-
-.light-theme .race-title__badge--easy {
-  background: rgba(0, 200, 83, 0.15);
-  color: #00a152;
-}
-
-.light-theme .race-title__badge--moderate {
-  background: rgba(211, 47, 47, 0.12);
-  color: #c62828;
-}
-
-.light-theme .race-title__badge--challenging {
-  background: rgba(230, 126, 34, 0.12);
-  color: #e65100;
+  background: var(--color-diff-challenging-bg);
+  color: var(--color-diff-challenging-text);
 }
 
 /* City text next to badge */
