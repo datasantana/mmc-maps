@@ -78,10 +78,10 @@
           <span class="stat-label">TOTAL ASC.</span>
           <span class="stat-value">{{ formattedTotalAscent }}<small>m</small></span>
         </div>
-        <div class="stat">
+        <!--div class="stat">
           <span class="stat-label">TIME</span>
           <span class="stat-value">{{ formattedTime }}</span>
-        </div>
+        </div-->
       </div>
     </div>
   </div>

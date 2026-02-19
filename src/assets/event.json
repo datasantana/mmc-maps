@@ -1,29 +1,29 @@
 {
-  "city": "Cali",
-  "eventName": "Media Maratón de Cali",
+  "city": "Floridablanca",
+  "eventName": "Reto Acapulco",
   "eventDate": "2026-03-15",
   "routes": [
     {
-      "id": "15k",
-      "name": "15K",
-      "distance": 15,
+      "id": "7k",
+      "name": "7K",
+      "distance": 7,
       "distanceUnit": "km",
-      "difficulty": "moderate",
-      "type": "Distancia larga",
-      "description": "Un recorrido vibrante de media distancia que combina tramos urbanos rápidos con ligeras ondulaciones. Su dificultad es moderada, ideal para corredores que buscan exigirse sin llegar al fondo maratónico. El clima cálido y húmedo típico de Cali añade un reto adicional, invitando a una buena estrategia de hidratación y ritmo.",
-      "duration": 300000,
-      "zoom": 12
+      "difficulty": "easy",
+      "type": "Distancia corta",
+      "description": "Un recorrido urbano accesible que recorre las principales avenidas de Floridablanca, Santander, ideal para principiantes y corredores recreativos. La ruta es mayormente plana, con algunos tramos ligeramente ondulados, lo que la hace perfecta para quienes buscan disfrutar del ambiente festivo de Acapulco sin una exigencia física alta. El clima cálido y húmedo típico de la región añade un toque de desafío, pero también invita a disfrutar del recorrido con una buena hidratación.",
+      "duration": 60000,
+      "zoom": 13
     },
     {
-      "id": "42k",
-      "name": "42K",
-      "distance": 42,
+      "id": "16k",
+      "name": "16K",
+      "distance": 16,
       "distanceUnit": "km",
-      "difficulty": "challenging",
-      "type": "Maratón",
-      "description": "Una prueba de resistencia total que atraviesa la diversidad de la ciudad, desde avenidas amplias hasta sectores con desniveles progresivos. La dificultad es alta, pensada para atletas con preparación sólida. El clima cálido, con humedad variable, convierte la maratón en un desafío técnico donde la gestión del esfuerzo es clave.",
-      "duration": 600000,
-      "zoom": 11
+      "difficulty": "moderate",
+      "type": "Distancia media",
+      "description": "Una ruta desafiante de 16km a través de Floridablanca que combina calles urbanas y paisajes naturales. Con ganancias de elevación moderadas y terreno variado, esta ruta desafía a corredores intermedios con vistas escénicas y tramos gratificantes. La hidratación adecuada es esencial debido a las condiciones cálidas y húmedas.",
+      "duration": 120000,
+      "zoom": 12
     }
   ]
 }
